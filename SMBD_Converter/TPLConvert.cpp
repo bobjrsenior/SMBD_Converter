@@ -10,24 +10,38 @@ typedef struct {
 	short unknown;
 }Texture;
 
+void parseTPL(char* filename);
+
 int main(int argc, char*argv[]) {
 	if (argc == 1) {
 		return 0;
 	}
-	std::string inputFile(argv[1]);
+	std::string filenameParam(argv[1]);
+
+	std::string fileType = filenameParam.substr(filenameParam.length() - 3, 3);
+
+	if (fileType == "tpl") {
+		parseTPL(argv[1]);
+	}
+
+	return 0;
+	
+}
+
+void parseTPL(char* filename) {
+	std::string inputFile(filename);
 
 	std::string outputFile = inputFile + ".gc";
-	std::cout << inputFile << " " << outputFile << std::endl;
 	int numTextures = 0;
 	int fileSize = 0;
 	Texture textures[256];
 	int newOffsets[256];
 
-	FILE* input = fopen(argv[1], "rb");
+	FILE* input = fopen(filename, "rb");
 
 	if (input == NULL) {
 		std::cout << "FAILED TO OPEN" << std::endl;
-		return 0;
+		return;
 	}
 	fseek(input, 0, SEEK_END);
 	fileSize = ftell(input);
@@ -36,7 +50,7 @@ int main(int argc, char*argv[]) {
 	FILE* output = fopen(outputFile.c_str(), "wb");
 
 	fseek(input, 4, SEEK_SET);
-	
+
 
 	numTextures = getc(input) + (getc(input) << 8) + (getc(input) << 16) + (getc(input) << 24);
 
@@ -44,7 +58,6 @@ int main(int argc, char*argv[]) {
 	for (int i = 0; i < numTextures; ++i) {
 		textures[i].encoding = getc(input) + (getc(input) << 8) + (getc(input) << 16) + (getc(input) << 24);
 		textures[i].offset = getc(input) + (getc(input) << 8) + (getc(input) << 16) + (getc(input) << 24);
-		std::cout << textures[i].offset << std::endl;
 		textures[i].width = getc(input) + (getc(input) << 8);
 		textures[i].height = getc(input) + (getc(input) << 8);
 		textures[i].unknown = getc(input) + (getc(input) << 8);
@@ -58,7 +71,7 @@ int main(int argc, char*argv[]) {
 
 	fseek(output, 16 * numTextures, SEEK_SET);
 
-	
+
 	for (int i = 0; i < numTextures; i++) {
 		newOffsets[i] = ftell(output);
 		fseek(input, textures[i].offset, SEEK_SET);
@@ -110,13 +123,11 @@ int main(int argc, char*argv[]) {
 		putc(unknown & 0xFF, output);
 
 		// 0x1234
-		putc(12, output);
-		putc(12, output);
+		putc(18, output);
+		putc(52, output);
 	}
 
 	std::cout << "WROTE TEXTURES" << std::endl;
 	fclose(input);
 	fclose(output);
-	return 0;
-	
 }
