@@ -1,13 +1,14 @@
 #include <stdio.h>
 #include <string>
 #include <iostream>
+#include <stdint.h>
 
 typedef struct {
-	int encoding;
-	int offset;
-	short width;
-	short height;
-	short unknown;
+	uint32_t encoding;
+	uint32_t offset;
+	uint16_t width;
+	uint16_t height;
+	uint16_t unknown;
 }Texture;
 
 void parseTPL(char* filename);
@@ -33,7 +34,7 @@ void parseTPL(char* filename) {
 
 	std::string outputFile = inputFile + ".gc";
 	int numTextures = 0;
-	int fileSize = 0;
+	uint32_t fileSize = 0;
 	Texture textures[256];
 	int newOffsets[256];
 
@@ -54,7 +55,6 @@ void parseTPL(char* filename) {
 
 	numTextures = getc(input) + (getc(input) << 8) + (getc(input) << 16) + (getc(input) << 24);
 
-	std::cout << ftell(input) << std::endl;
 	for (int i = 0; i < numTextures; ++i) {
 		textures[i].encoding = getc(input) + (getc(input) << 8) + (getc(input) << 16) + (getc(input) << 24);
 		textures[i].offset = getc(input) + (getc(input) << 8) + (getc(input) << 16) + (getc(input) << 24);
@@ -69,7 +69,8 @@ void parseTPL(char* filename) {
 
 	std::cout << "READ TEXTURE HEADERS" << std::endl;
 
-	fseek(output, 16 * numTextures, SEEK_SET);
+	fseek(output, 4, SEEK_SET);
+	fseek(output, 16 * numTextures, SEEK_CUR);
 
 
 	for (int i = 0; i < numTextures; i++) {
@@ -77,15 +78,39 @@ void parseTPL(char* filename) {
 		fseek(input, textures[i].offset, SEEK_SET);
 
 		// 0C Designates texture start
-		fseek(input, 4, SEEK_SET);
+		fseek(input, 4, SEEK_CUR);
 		// Copy of texture width and height
-		fseek(input, 8, SEEK_SET);
+		fseek(input, 8, SEEK_CUR);
 
-		// Unknown
-		fseek(input, 40, SEEK_SET);
+		if (textures[i].encoding == 14) {
+			// Unknown
+			fseek(input, 20, SEEK_CUR);
+		}
+		else {
+			// Unknown
+			fseek(input, 28, SEEK_CUR);
+		}
 
-		while (ftell(input) < fileSize || (i < numTextures - 1 && ftell(input) < textures[i + 1].offset)) {
-			putc(getc(input), output);
+		while (((uint32_t) ftell(input)) < fileSize || (i < numTextures - 1 && ((uint32_t) ftell(input)) < textures[i + 1].offset)) {
+			if (textures[i].encoding == 14) {
+				uint16_t pallete1 = getc(input) + (getc(input) << 8);
+				putc((pallete1 >> 8) & 0xFF, output);
+				putc(pallete1 & 0xFF, output);
+
+				uint16_t pallete2 = getc(input) + (getc(input) << 8);
+				putc((pallete2 >> 8) & 0xFF, output);
+				putc(pallete2 & 0xFF, output);
+
+				uint32_t pixels = (getc(input)) + (getc(input) << 8) + (getc(input) << 16) + (getc(input) << 24);
+				putc((pixels) & 0xFF, output);
+				putc((pixels >> 8) & 0xFF, output);
+				putc((pixels >> 16) & 0xFF, output);
+				putc((pixels << 24) & 0xFF, output);
+			}
+			else if (textures[i].encoding == 1) {
+				char intensity = getc(input);
+				putc(intensity, output);
+			}
 		}
 	}
 
@@ -126,7 +151,7 @@ void parseTPL(char* filename) {
 		putc(18, output);
 		putc(52, output);
 	}
-
+	std::cout << ftell(output) << std::endl;
 	std::cout << "WROTE TEXTURES" << std::endl;
 	fclose(input);
 	fclose(output);
