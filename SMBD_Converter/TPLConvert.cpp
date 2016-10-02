@@ -48,17 +48,20 @@ void parseTPL(char* filename) {
 		std::cout << "FAILED TO OPEN" << std::endl;
 		return;
 	}
+
 	fseek(input, 0, SEEK_END);
 	fileSize = ftell(input);
 	fseek(input, 0, SEEK_SET);
 
 	FILE* output = fopen(outputFile.c_str(), "wb");
 
+	// Skip the XTPL marker
 	fseek(input, 4, SEEK_SET);
 
-
+	// Get the number of textures
 	numTextures = getc(input) + (getc(input) << 8) + (getc(input) << 16) + (getc(input) << 24);
 
+	//Retrieve the Textures headers
 	for (int i = 0; i < numTextures; ++i) {
 		textures[i].encoding = getc(input) + (getc(input) << 8) + (getc(input) << 16) + (getc(input) << 24);
 		textures[i].offset = getc(input) + (getc(input) << 8) + (getc(input) << 16) + (getc(input) << 24);
@@ -83,9 +86,11 @@ void parseTPL(char* filename) {
 
 		// Designates texture start (Value depends on texture type?)
 		fseek(input, 4, SEEK_CUR);
+
 		// Copy of texture width and height
 		fseek(input, 8, SEEK_CUR);
 
+		// Unknown texture headers
 		if (textures[i].encoding == CMPR) {
 			fseek(input, 20, SEEK_CUR);
 		}
@@ -97,6 +102,7 @@ void parseTPL(char* filename) {
 			fseek(input, 20, SEEK_CUR);
 		}
 
+		// Copy texture data
 		while (((uint32_t) ftell(input)) < fileSize || (i < numTextures - 1 && ((uint32_t) ftell(input)) < textures[i + 1].offset)) {
 			if (textures[i].encoding == CMPR) {
 				/*
