@@ -30,6 +30,10 @@ int main(int argc, char*argv[]) {
 }
 
 void parseTPL(char* filename) {
+	const int CMPR = 14;
+	const int I8 = 1;
+
+
 	std::string inputFile(filename);
 
 	std::string outputFile = inputFile + ".gc";
@@ -77,22 +81,25 @@ void parseTPL(char* filename) {
 		newOffsets[i] = ftell(output);
 		fseek(input, textures[i].offset, SEEK_SET);
 
-		// 0C Designates texture start
+		// Designates texture start (Value depends on texture type?)
 		fseek(input, 4, SEEK_CUR);
 		// Copy of texture width and height
 		fseek(input, 8, SEEK_CUR);
 
-		if (textures[i].encoding == 14) {
+		if (textures[i].encoding == CMPR) {
+			fseek(input, 20, SEEK_CUR);
+		}
+		else if (textures[i].encoding == I8) {
+			fseek(input, 20, SEEK_CUR);
+		}// Unsupported/Unknown
+		else {
 			// Unknown
 			fseek(input, 20, SEEK_CUR);
 		}
-		else {
-			// Unknown
-			fseek(input, 28, SEEK_CUR);
-		}
 
 		while (((uint32_t) ftell(input)) < fileSize || (i < numTextures - 1 && ((uint32_t) ftell(input)) < textures[i + 1].offset)) {
-			if (textures[i].encoding == 14) {
+			if (textures[i].encoding == CMPR) {
+				/*
 				uint16_t pallete1 = getc(input) + (getc(input) << 8);
 				putc((pallete1 >> 8) & 0xFF, output);
 				putc(pallete1 & 0xFF, output);
@@ -100,15 +107,29 @@ void parseTPL(char* filename) {
 				uint16_t pallete2 = getc(input) + (getc(input) << 8);
 				putc((pallete2 >> 8) & 0xFF, output);
 				putc(pallete2 & 0xFF, output);
+				*/
+
+				
+				uint32_t palletes = (getc(input)) + (getc(input) << 8) + (getc(input) << 16) + (getc(input) << 24);
+				putc((palletes >> 8) & 0xFF, output);
+				putc((palletes) & 0xFF, output);
+				putc((palletes >> 24) & 0xFF, output);
+				putc((palletes >> 16) & 0xFF, output);
+				
 
 				uint32_t pixels = (getc(input)) + (getc(input) << 8) + (getc(input) << 16) + (getc(input) << 24);
-				putc((pixels) & 0xFF, output);
-				putc((pixels >> 8) & 0xFF, output);
+				putc((pixels >> 24) & 0xFF, output);
 				putc((pixels >> 16) & 0xFF, output);
-				putc((pixels << 24) & 0xFF, output);
+				putc((pixels >> 8) & 0xFF, output);
+				putc((pixels) & 0xFF, output);
 			}
-			else if (textures[i].encoding == 1) {
-				char intensity = getc(input);
+			else if (textures[i].encoding == I8) {
+				uint8_t intensity = getc(input);
+				putc(intensity, output);
+				
+			}
+			else {
+				uint8_t intensity = getc(input);
 				putc(intensity, output);
 			}
 		}
@@ -123,27 +144,27 @@ void parseTPL(char* filename) {
 	putc(numTextures & 0xFF, output);
 
 	for (int i = 0; i < numTextures; ++i) {
-		int encoding = textures[i].encoding;
+		uint32_t encoding = textures[i].encoding;
 		putc((encoding >> 24) & 0xFF, output);
 		putc((encoding >> 16) & 0xFF, output);
 		putc((encoding >> 8) & 0xFF, output);
 		putc(encoding & 0xFF, output);
 
-		int offset = newOffsets[i];
+		uint32_t offset = newOffsets[i];
 		putc((offset >> 24) & 0xFF, output);
 		putc((offset >> 16) & 0xFF, output);
 		putc((offset >> 8) & 0xFF, output);
 		putc(offset & 0xFF, output);
 
-		short width = textures[i].width;
+		uint16_t width = textures[i].width;
 		putc((width >> 8) & 0xFF, output);
 		putc(width & 0xFF, output);
 
-		short height = textures[i].height;
+		uint16_t height = textures[i].height;
 		putc((height >> 8) & 0xFF, output);
 		putc(height & 0xFF, output);
 
-		short unknown = textures[i].unknown;
+		uint16_t unknown = textures[i].unknown;
 		putc((unknown >> 8) & 0xFF, output);
 		putc(unknown & 0xFF, output);
 
