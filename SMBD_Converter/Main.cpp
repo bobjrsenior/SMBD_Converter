@@ -1,8 +1,13 @@
+#ifdef _MSC_VER
+#define _CRT_SECURE_NO_WARNINGS
+#endif
+
 #include <stdio.h>
 #include <string>
 #include <iostream>
 #include <stdint.h>
 #include <errno.h>
+#include "RawLZConverter.h"
 
 typedef struct {
 	uint32_t encoding;
@@ -48,6 +53,9 @@ int main(int argc, char*argv[]) {
 	}
 	else if (fileType == "gma") {
 		parseGMA(argv[1]);
+	}
+	else if (fileType == "raw") {
+		parseRawLZ(argv[1]);
 	}
 
 	return 0;
