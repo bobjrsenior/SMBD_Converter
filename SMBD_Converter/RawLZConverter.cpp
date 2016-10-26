@@ -143,6 +143,41 @@ void parseRawLZ(char* filename) {
 	writeInt(converted, bananas.number);
 	writeInt(converted, bananas.offset);
 
+	// Dead Zone (0x20)
+	for (int i = 0; i < 0x20 / 4; ++i) {
+		writeInt(converted, readInt(original));
+	}
+
+	// Background Models
+	backgroundModels.number = readInt(original);
+	backgroundModels.offset = readInt(original);
+	writeInt(converted, backgroundModels.number);
+	writeInt(converted, backgroundModels.offset);
+
+	// 3 zeros, 1 one, 7 zeros
+	for (int i = 0; i < 11; ++i) {
+		writeInt(converted, readInt(original));
+	}
+
+	// Level Model A
+	levelModelA.number = readInt(original);
+	levelModelA.offset = readInt(original);
+	writeInt(converted, levelModelA.number);
+	writeInt(converted, levelModelA.offset);
+
+	// Level Model B
+	levelModelB.number = readInt(original);
+	levelModelB.offset = readInt(original);
+	writeInt(converted, levelModelB.number);
+	writeInt(converted, levelModelB.offset);
+
+	// Dead Zone (0x800)
+	for (int i = 0; i < 0x800 / 4; ++i) {
+		writeInt(converted, readInt(original));
+	}
+
+	// End of header
+
 
 
 	fclose(original);
