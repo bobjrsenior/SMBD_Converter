@@ -380,6 +380,74 @@ void parseRawLZ(char* filename) {
 
 	}
 
+	// Level Model As
+
+	fseek(original, levelModelA.offset, SEEK_SET);
+	fseek(converted, levelModelA.offset, SEEK_SET);
+
+	for (int i = 0; i < levelModelA.number; ++i) {
+		// Level Model A marker
+		writeInt(converted, readInt(original));
+		writeInt(converted, readInt(original));
+
+		// Level Model offset
+		uint32_t levelModelOffset = readInt(original);
+		writeInt(converted, levelModelOffset);
+
+		uint32_t savePos = ftell(original);
+
+		// Level Model
+		
+		fseek(original, levelModelOffset - 8, SEEK_SET);
+		fseek(converted, levelModelOffset - 8, SEEK_SET);
+
+		// Header (All zero) (0xC)
+		for (int j = 0; j < 0xC / 4; ++j) {
+			writeInt(converted, readInt(original));
+		}
+
+		uint32_t modelNameOffset = readInt(original);
+		writeInt(converted, modelNameOffset);
+		copyAscii(original, converted, modelNameOffset);
+
+		fseek(original, savePos, SEEK_SET);
+		fseek(converted, savePos, SEEK_SET);
+
+
+	}
+
+	// Level Model Bs
+
+	fseek(original, levelModelB.offset, SEEK_SET);
+	fseek(converted, levelModelB.offset, SEEK_SET);
+
+	for (int i = 0; i < levelModelB.number; ++i) {
+		// Level Model offset
+		uint32_t levelModelOffset = readInt(original);
+		writeInt(converted, levelModelOffset);
+
+		uint32_t savePos = ftell(original);
+
+		// Level Model
+
+		fseek(original, levelModelOffset, SEEK_SET);
+		fseek(converted, levelModelOffset , SEEK_SET);
+
+		// Level Model B Marker
+		writeInt(converted, readInt(original));
+		writeInt(converted, readInt(original));
+
+		uint32_t levelModelAOffset = readInt(original);
+		writeInt(converted, levelModelAOffset);
+		//copyAscii(original, converted, modelNameOffset);
+
+		fseek(original, savePos, SEEK_SET);
+		fseek(converted, savePos, SEEK_SET);
+
+
+	}
+
+
 	fclose(original);
 	fclose(converted);
 }
