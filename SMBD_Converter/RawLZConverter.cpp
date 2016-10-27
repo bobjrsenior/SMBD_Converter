@@ -26,14 +26,14 @@ inline uint32_t readLittleInt(FILE *file) {
 }
 
 inline uint16_t readBigShort(FILE *file) {
-	uint16_t c1 = getc(file) << 8;
-	uint16_t c2 = getc(file);
+	uint16_t c1 = (uint16_t) getc(file) << 8;
+	uint16_t c2 = (uint16_t) getc(file);
 	return (c1 | c2);
 }
 
 inline uint16_t readLittleShort(FILE *file) {
-	uint16_t c1 = getc(file);
-	uint16_t c2 = getc(file) << 8;
+	uint16_t c1 = (uint16_t) getc(file);
+	uint16_t c2 = (uint16_t) getc(file) << 8;
 	return (c1 | c2);
 }
 
@@ -59,6 +59,19 @@ inline void writeBigShort(FILE *file, uint16_t value) {
 inline void writeLittleShort(FILE *file, uint16_t value) {
 	putc((value), file);
 	putc((value >> 8), file);
+}
+
+inline void copyAscii(FILE *input, FILE *output, uint32_t offset) {
+	uint32_t savePos = ftell(input);
+	fseek(input, offset, SEEK_SET);
+	fseek(output, offset, SEEK_SET);
+	int c;
+	do {
+		c = getc(input);
+		putc(c, output);
+	} while (!feof(input) && !(c == 0 && ftell(input) % 4 == 0));
+	fseek(input, savePos, SEEK_SET);
+	fseek(output, savePos, SEEK_SET);
 }
 
 
@@ -327,6 +340,45 @@ void parseRawLZ(char* filename) {
 		writeNormalInt(converted, readInt(original));
 	}
 
+	// Background Models
+
+	fseek(original, backgroundModels.offset, SEEK_SET);
+	fseek(converted, backgroundModels.offset, SEEK_SET);
+
+	for (int i = 0; i < backgroundModels.number; ++i) {
+		// Background model marker
+		writeInt(converted, readInt(original));
+
+		// Model Name offset
+		uint32_t modelNameOffset = readInt(original);
+		copyAscii(original, converted, modelNameOffset);
+
+		// Padding
+		writeInt(converted, readInt(original));
+
+		// Position
+		writeInt(converted, readInt(original));
+		writeInt(converted, readInt(original));
+		writeInt(converted, readInt(original));
+
+		// Rotation
+		writeShort(converted, readShort(original));
+		writeShort(converted, readShort(original));
+		writeShort(converted, readShort(original));
+		// Padding
+		writeShort(converted, readShort(original));
+
+		// Scale
+		writeInt(converted, readInt(original));
+		writeInt(converted, readInt(original));
+		writeInt(converted, readInt(original));
+
+		// Dead Zone (0xC)
+		for (int j = 0; j < 0xC / 4; ++j) {
+			writeInt(converted, readInt(original));
+		}
+
+	}
 
 	fclose(original);
 	fclose(converted);
