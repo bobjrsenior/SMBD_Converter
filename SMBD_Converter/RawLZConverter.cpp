@@ -25,6 +25,18 @@ inline uint32_t readLittleInt(FILE *file) {
 	return (c1 | c2 | c3 | c4);
 }
 
+inline uint16_t readBigShort(FILE *file) {
+	uint16_t c1 = getc(file) << 8;
+	uint16_t c2 = getc(file);
+	return (c1 | c2);
+}
+
+inline uint16_t readLittleShort(FILE *file) {
+	uint16_t c1 = getc(file);
+	uint16_t c2 = getc(file) << 8;
+	return (c1 | c2);
+}
+
 inline void writeBigInt(FILE *file, uint32_t value) {
 	putc((value << 24), file);
 	putc((value << 16), file);
@@ -39,6 +51,17 @@ inline void writeLittleInt(FILE *file, uint32_t value) {
 	putc((value >> 24), file);
 }
 
+inline void writeBigShort(FILE *file, uint16_t value) {
+	putc((value << 8), file);
+	putc((value), file);
+}
+
+inline void writeLittleShort(FILE *file, uint16_t value) {
+	putc((value), file);
+	putc((value >> 8), file);
+}
+
+
 typedef struct {
 	int number;
 	int offset;
@@ -50,6 +73,11 @@ void parseRawLZ(char* filename) {
 	// Using function pointers to read/write values keeps things game agnostic (can convert from SMBD to SMB2 or SMB2 to SMBD)
 	uint32_t(*readInt)(FILE*);
 	void(*writeInt)(FILE*, uint32_t);
+	void(*writeNormalInt)(FILE*, uint32_t);
+
+	uint16_t(*readShort)(FILE*);
+	void(*writeShort)(FILE*, uint16_t);
+	void(*writeNormalShort)(FILE*, uint16_t);
 
 	std::string outfilename = std::string(filename);
 
@@ -67,13 +95,25 @@ void parseRawLZ(char* filename) {
 		game = SMBD;
 		outfilename += ".smb2";
 		readInt = &readLittleInt;
+		readShort = &readLittleShort;
+
 		writeInt = &writeBigInt;
+		writeShort = &writeBigShort;
+
+		writeNormalInt = &writeLittleInt;
+		writeNormalShort = &writeLittleShort;
 	}
 	else {
 		game = SMB2;
 		outfilename += ".smbd";
 		readInt = &readBigInt;
+		readShort = &readBigShort;
+
 		writeInt = &writeLittleInt;
+		writeShort = &writeLittleShort;
+
+		writeNormalInt = &writeBigInt;
+		writeNormalShort = &writeBigShort;
 
 	}
 
@@ -178,6 +218,114 @@ void parseRawLZ(char* filename) {
 
 	// End of header
 
+	// Start Position
+
+	fseek(original, startPositions.offset, SEEK_SET);
+	fseek(converted, startPositions.offset, SEEK_SET);
+
+	for (int i = 0; i < startPositions.number; ++i) {
+		// Position
+		writeInt(converted, readInt(original));
+		writeInt(converted, readInt(original));
+		writeInt(converted, readInt(original));
+
+		// Rotation
+		writeShort(converted, readShort(original));
+		writeShort(converted, readShort(original));
+		writeShort(converted, readShort(original));
+		// Padding
+		writeShort(converted, readShort(original));
+	}
+
+	// Fallout Y
+
+	fseek(original, falloutY.offset, SEEK_SET);
+	fseek(converted, falloutY.offset, SEEK_SET);
+	writeInt(converted, readInt(original));
+
+	// Order would be write collision fields next, but lets save that for later...
+
+	// Goals
+
+	fseek(original, goals.offset, SEEK_SET);
+	fseek(converted, goals.offset, SEEK_SET);
+
+	for (int i = 0; i < goals.number; ++i) {
+		// Position
+		writeInt(converted, readInt(original));
+		writeInt(converted, readInt(original));
+		writeInt(converted, readInt(original));
+
+		// Rotation
+		writeShort(converted, readShort(original));
+		writeShort(converted, readShort(original));
+		writeShort(converted, readShort(original));
+		// Goal Type (order preserved regardless of endianess)
+		writeNormalShort(converted, readShort(original));
+	}
+
+	// Bumpers
+
+	fseek(original, bumpers.offset, SEEK_SET);
+	fseek(converted, bumpers.offset, SEEK_SET);
+
+	for (int i = 0; i < bumpers.number; ++i) {
+		// Position
+		writeInt(converted, readInt(original));
+		writeInt(converted, readInt(original));
+		writeInt(converted, readInt(original));
+
+		// Rotation
+		writeShort(converted, readShort(original));
+		writeShort(converted, readShort(original));
+		writeShort(converted, readShort(original));
+		// Padding
+		writeShort(converted, readShort(original));
+
+		// Scale
+		writeInt(converted, readInt(original));
+		writeInt(converted, readInt(original));
+		writeInt(converted, readInt(original));
+	}
+
+	// Jamabars
+
+	fseek(original, jamabars.offset, SEEK_SET);
+	fseek(converted, jamabars.offset, SEEK_SET);
+
+	for (int i = 0; i < jamabars.number; ++i) {
+		// Position
+		writeInt(converted, readInt(original));
+		writeInt(converted, readInt(original));
+		writeInt(converted, readInt(original));
+
+		// Rotation
+		writeShort(converted, readShort(original));
+		writeShort(converted, readShort(original));
+		writeShort(converted, readShort(original));
+		// Padding
+		writeShort(converted, readShort(original));
+
+		// Scale
+		writeInt(converted, readInt(original));
+		writeInt(converted, readInt(original));
+		writeInt(converted, readInt(original));
+	}
+
+	// Bananas
+
+	fseek(original, bananas.offset, SEEK_SET);
+	fseek(converted, bananas.offset, SEEK_SET);
+
+	for (int i = 0; i < jamabars.number; ++i) {
+		// Position
+		writeInt(converted, readInt(original));
+		writeInt(converted, readInt(original));
+		writeInt(converted, readInt(original));
+
+		// Banana Type
+		writeNormalInt(converted, readInt(original));
+	}
 
 
 	fclose(original);
