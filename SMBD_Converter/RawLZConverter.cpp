@@ -447,6 +447,59 @@ void parseRawLZ(char* filename) {
 
 	}
 
+	// Collision Fields
+
+	// Level Model Bs
+
+	fseek(original, collisionFields.offset, SEEK_SET);
+	fseek(converted, collisionFields.offset, SEEK_SET);
+
+	for (int i = 0; i < collisionFields.number; ++i) {
+		// Center Animation Position
+		writeInt(converted, readInt(original));
+		writeInt(converted, readInt(original));
+		writeInt(converted, readInt(original));
+
+		// Initial Animation Rotation
+		writeShort(converted, readShort(original));
+		writeShort(converted, readShort(original));
+		writeShort(converted, readShort(original));
+		// Padding
+		writeShort(converted, readShort(original));
+
+		// Offset to animation data (Will handle after non-animation is handled)
+		writeInt(converted, readInt(original));
+
+		// Dead Zone (May include model name reference) (0x10)
+		for (int j = 0; j < 0x10 / 4; ++j) {
+			writeInt(converted, readInt(original));
+		}
+
+		// Triangle Collision Data
+		uint32_t triangleDataOffset = readInt(original);
+		writeInt(converted, triangleDataOffset);
+
+		// Collision Grid Pointers
+		uint32_t collisionGridPointerOffsets = readInt(original);
+		writeInt(converted, collisionGridPointerOffsets);
+
+		// Collision Grid X/Z Start value
+		writeInt(converted, readInt(original));
+		writeInt(converted, readInt(original));
+
+		// Collision Grid X/Z Step value
+		writeInt(converted, readInt(original));
+		writeInt(converted, readInt(original));
+
+		// 0x10 0x10
+		writeInt(converted, readInt(original));
+		writeInt(converted, readInt(original));
+
+		// Copy of header for what gets animated with the collision field (0x458)
+		for (int j = 0; j < 0x458 / 4; ++j) {
+			writeInt(converted, readInt(original));
+		}
+	}
 
 	fclose(original);
 	fclose(converted);
