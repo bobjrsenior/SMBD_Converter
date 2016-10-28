@@ -74,7 +74,6 @@ inline void copyAscii(FILE *input, FILE *output, uint32_t offset) {
 	fseek(output, savePos, SEEK_SET);
 }
 
-
 typedef struct {
 	int number;
 	int offset;
@@ -330,7 +329,7 @@ void parseRawLZ(char* filename) {
 	fseek(original, bananas.offset, SEEK_SET);
 	fseek(converted, bananas.offset, SEEK_SET);
 
-	for (int i = 0; i < jamabars.number; ++i) {
+	for (int i = 0; i < bananas.number; ++i) {
 		// Position
 		writeInt(converted, readInt(original));
 		writeInt(converted, readInt(original));
@@ -471,7 +470,7 @@ void parseRawLZ(char* filename) {
 		writeInt(converted, readInt(original));
 
 		// Dead Zone (May include model name reference) (0x10)
-		for (int j = 0; j < 0x10 / 4; ++j) {
+		for (int j = 0; j < 0xC / 4; ++j) {
 			writeInt(converted, readInt(original));
 		}
 
@@ -499,6 +498,86 @@ void parseRawLZ(char* filename) {
 		for (int j = 0; j < 0x458 / 4; ++j) {
 			writeInt(converted, readInt(original));
 		}
+
+		uint32_t savePos = ftell(original);
+
+		// Handle the collision grid before the collision triangles to find which offset they end at
+		fseek(original, collisionGridPointerOffsets, SEEK_SET);
+		fseek(converted, collisionGridPointerOffsets, SEEK_SET);
+
+		uint32_t triangleCollisionEnd = readInt(original);
+		fseek(original, -4, SEEK_CUR);
+
+		do {
+			uint32_t collisionGridOffset = readInt(original);
+
+			// A collision Grid offset won't be this big, but an ascii value will be which is next in the file order
+			if (collisionGridOffset >= 0x01000000) {
+				break;
+			}
+
+			writeInt(converted, collisionGridOffset);
+
+			// 0 == No triangles here
+			if (collisionGridOffset != 0) {
+				uint32_t savePos2 = ftell(original);
+
+				// Go to the collision grid
+				fseek(original, collisionGridOffset, SEEK_SET);
+				fseek(converted, collisionGridOffset, SEEK_SET);
+
+				// Copy all the collision grid numbers for this particular grid
+				uint16_t collisionTriangleNumber;
+				do {
+					collisionTriangleNumber = readShort(original);
+					writeShort(converted, collisionTriangleNumber);
+				} while (collisionTriangleNumber != 0xFFFF); // End of grid marker
+
+				fseek(original, savePos2, SEEK_SET);
+				fseek(converted, savePos2, SEEK_SET);
+			}
+
+		} while (1);
+
+		// Handle Collision Triangles
+		fseek(original, triangleDataOffset, SEEK_SET);
+		fseek(converted, triangleDataOffset, SEEK_SET);
+
+		while ((uint32_t) ftell(original) < triangleCollisionEnd) {
+			// X1 Position
+			writeInt(converted, readInt(original));
+			writeInt(converted, readInt(original));
+			writeInt(converted, readInt(original));
+
+			// Normal (X, Y, Z)
+			writeInt(converted, readInt(original));
+			writeInt(converted, readInt(original));
+			writeInt(converted, readInt(original));
+
+			// Rotation from XY plane (X, Y, Z)
+			writeShort(converted, readShort(original));
+			writeShort(converted, readShort(original));
+			writeShort(converted, readShort(original));
+			// Padding
+			writeShort(converted, readShort(original));
+
+			// Distance to other vertecies (DX2X1, DY2Y1, DX3X1, DY3Y1)
+			writeInt(converted, readInt(original));
+			writeInt(converted, readInt(original));
+			writeInt(converted, readInt(original));
+			writeInt(converted, readInt(original));
+
+			// Tangent (X, Y)
+			writeInt(converted, readInt(original));
+			writeInt(converted, readInt(original));
+
+			// Bitangent (X, Y)
+			writeInt(converted, readInt(original));
+			writeInt(converted, readInt(original));
+		}
+
+		fseek(original, savePos, SEEK_SET);
+		fseek(converted, savePos, SEEK_SET);
 	}
 
 	fclose(original);
