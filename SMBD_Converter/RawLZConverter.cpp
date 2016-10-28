@@ -144,6 +144,7 @@ void parseRawLZ(char* filename) {
 	Item bumpers;
 	Item jamabars;
 	Item bananas;
+	Item mysteryOne;
 	Item backgroundModels;
 	Item levelModelA;
 	Item levelModelB;
@@ -195,10 +196,16 @@ void parseRawLZ(char* filename) {
 	writeInt(converted, bananas.number);
 	writeInt(converted, bananas.offset);
 
-	// Dead Zone (0x20)
-	for (int i = 0; i < 0x20 / 4; ++i) {
+	// Dead Zone (0x1C)8
+	for (int i = 0; i < 0x18 / 4; ++i) {
 		writeInt(converted, readInt(original));
 	}
+
+	// Unknown
+	mysteryOne.number = readInt(original);
+	mysteryOne.offset = readInt(original);
+	writeInt(converted, mysteryOne.number);
+	writeInt(converted, mysteryOne.offset);
 
 	// Background Models
 	backgroundModels.number = readInt(original);
@@ -339,6 +346,27 @@ void parseRawLZ(char* filename) {
 		writeNormalInt(converted, readInt(original));
 	}
 
+	// Mystery One
+
+	fseek(original, mysteryOne.offset, SEEK_SET);
+	fseek(converted, mysteryOne.offset, SEEK_SET);
+
+	for (int i = 0; i < mysteryOne.number; ++i) {
+		// Marker?
+		writeInt(converted, readInt(original));
+
+		// 5 floats?
+		writeInt(converted, readInt(original));
+		writeInt(converted, readInt(original));
+		writeInt(converted, readInt(original));
+		writeInt(converted, readInt(original));
+		writeInt(converted, readInt(original));
+
+		// 2 4-byte zeros
+		writeInt(converted, readInt(original));
+		writeInt(converted, readInt(original));
+	}
+	fflush(converted);
 	// Background Models
 
 	fseek(original, backgroundModels.offset, SEEK_SET);
