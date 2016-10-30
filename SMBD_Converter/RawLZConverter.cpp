@@ -38,9 +38,9 @@ inline uint16_t readLittleShort(FILE *file) {
 }
 
 inline void writeBigInt(FILE *file, uint32_t value) {
-	putc((value << 24), file);
-	putc((value << 16), file);
-	putc((value << 8), file);
+	putc((value >> 24), file);
+	putc((value >> 16), file);
+	putc((value >> 8), file);
 	putc((value), file);
 }
 
@@ -52,7 +52,7 @@ inline void writeLittleInt(FILE *file, uint32_t value) {
 }
 
 inline void writeBigShort(FILE *file, uint16_t value) {
-	putc((value << 8), file);
+	putc((value >> 8), file);
 	putc((value), file);
 }
 
@@ -68,6 +68,9 @@ inline void copyAscii(FILE *input, FILE *output, uint32_t offset) {
 	int c;
 	do {
 		c = getc(input);
+		if (c == EOF) {
+			break;
+		}
 		putc(c, output);
 	} while (!feof(input) && !(c == 0 && ftell(input) % 4 == 0));
 	fseek(input, savePos, SEEK_SET);
@@ -131,6 +134,12 @@ void parseRawLZ(char* filename) {
 
 	FILE *converted = fopen(outfilename.c_str(), "wb");
 
+	if (converted == NULL) {
+		fclose(original);
+		printf("Failed to open file: %s\n", strerror(errno));
+		return;
+	}
+
 	fseek(original, 0, SEEK_SET);
 
 	// Actually begin parsing/converting
@@ -148,6 +157,9 @@ void parseRawLZ(char* filename) {
 	Item backgroundModels;
 	Item levelModelA;
 	Item levelModelB;
+	Item stageAnimations;
+	Item mysteryTwo;
+	Item mysteryThree;
 	// More Items I still need to figure out/waiting for Yohsi to document
 
 
@@ -230,8 +242,32 @@ void parseRawLZ(char* filename) {
 	writeInt(converted, levelModelB.number);
 	writeInt(converted, levelModelB.offset);
 
-	// Dead Zone (0x800)
-	for (int i = 0; i < 0x800 / 4; ++i) {
+	// Dead Zone (0x14)
+	for (int i = 0; i < 0x14 / 4; ++i) {
+		writeInt(converted, readInt(original));
+	}
+
+	// Stage Animation
+	stageAnimations.offset = readInt(original);
+	writeInt(converted, stageAnimations.offset);
+
+	// Dead Zone (0x8)
+	writeInt(converted, readInt(original));
+	writeInt(converted, readInt(original));
+
+	mysteryTwo.offset = readInt(original);
+	writeInt(converted, mysteryTwo.offset);
+
+	// Dead Zone (0x14)
+	for (int i = 0; i < 0x14 / 4; ++i) {
+		writeInt(converted, readInt(original));
+	}
+
+	mysteryThree.offset = readInt(original);
+	writeInt(converted, mysteryThree.offset);
+
+	// Dead Zone (0x7C4)
+	for (int i = 0; i < 0x7E8 / 4; ++i) {
 		writeInt(converted, readInt(original));
 	}
 
@@ -606,6 +642,172 @@ void parseRawLZ(char* filename) {
 
 		fseek(original, savePos, SEEK_SET);
 		fseek(converted, savePos, SEEK_SET);
+	}
+
+	/// Time for some mysteries...
+
+	// stageAnimations
+
+	fseek(original, stageAnimations.offset, SEEK_SET);
+	fseek(converted, stageAnimations.offset, SEEK_SET);
+
+	{
+		Item rotX;
+		Item rotY;
+		Item rotZ;
+		Item transX;
+		Item transY;
+		Item transZ;
+
+
+		// Rotation Headers (X, Y, Z)
+		rotX.number = readInt(original);
+		rotX.offset = readInt(original);
+		writeInt(converted, rotX.number);
+		writeInt(converted, rotX.offset);
+
+		rotY.number = readInt(original);
+		rotY.offset = readInt(original);
+		writeInt(converted, rotY.number);
+		writeInt(converted, rotY.offset);
+
+		rotZ.number = readInt(original);
+		rotZ.offset = readInt(original);
+		writeInt(converted, rotZ.number);
+		writeInt(converted, rotZ.offset);
+
+		// Translation Headers (X, Y, Z)
+		transX.number = readInt(original);
+		transX.offset = readInt(original);
+		writeInt(converted, transX.number);
+		writeInt(converted, transX.offset);
+
+		transY.number = readInt(original);
+		transY.offset = readInt(original);
+		writeInt(converted, transY.number);
+		writeInt(converted, transY.offset);
+
+		transZ.number = readInt(original);
+		transZ.offset = readInt(original);
+		writeInt(converted, transZ.number);
+		writeInt(converted, transZ.offset);
+
+		// Copy the animation frames
+		uint32_t savePos = ftell(original);
+
+		// Rotation X
+		fseek(original, rotX.offset, SEEK_SET);
+		fseek(converted, rotX.offset, SEEK_SET);
+
+		for (uint32_t i = 0; i < rotX.number; ++i) {
+			// Animation Marker
+			writeInt(converted, readInt(original));
+
+			// Time
+			writeInt(converted, readInt(original));
+
+			// Displacement
+			writeInt(converted, readInt(original));
+
+			// Dead Zone (0x8)
+			writeInt(converted, readInt(original));
+			writeInt(converted, readInt(original));
+		}
+
+		// Rotation Y
+		fseek(original, rotY.offset, SEEK_SET);
+		fseek(converted, rotY.offset, SEEK_SET);
+
+		for (uint32_t i = 0; i < rotY.number; ++i) {
+			// Animation Marker
+			writeInt(converted, readInt(original));
+
+			// Time
+			writeInt(converted, readInt(original));
+
+			// Displacement
+			writeInt(converted, readInt(original));
+
+			// Dead Zone (0x8)
+			writeInt(converted, readInt(original));
+			writeInt(converted, readInt(original));
+		}
+
+		// Rotation Z
+		fseek(original, rotZ.offset, SEEK_SET);
+		fseek(converted, rotZ.offset, SEEK_SET);
+
+		for (uint32_t i = 0; i < rotZ.number; ++i) {
+			// Animation Marker
+			writeInt(converted, readInt(original));
+
+			// Time
+			writeInt(converted, readInt(original));
+
+			// Displacement
+			writeInt(converted, readInt(original));
+
+			// Dead Zone (0x8)
+			writeInt(converted, readInt(original));
+			writeInt(converted, readInt(original));
+		}
+
+		// Translation X
+		fseek(original, transX.offset, SEEK_SET);
+		fseek(converted, transX.offset, SEEK_SET);
+
+		for (uint32_t i = 0; i < transX.number; ++i) {
+			// Animation Marker
+			writeInt(converted, readInt(original));
+
+			// Time
+			writeInt(converted, readInt(original));
+
+			// Displacement
+			writeInt(converted, readInt(original));
+
+			// Dead Zone (0x8)
+			writeInt(converted, readInt(original));
+			writeInt(converted, readInt(original));
+		}
+
+		// Translation Y
+		fseek(original, transY.offset, SEEK_SET);
+		fseek(converted, transY.offset, SEEK_SET);
+
+		for (uint32_t i = 0; i < transY.number; ++i) {
+			// Animation Marker
+			writeInt(converted, readInt(original));
+
+			// Time
+			writeInt(converted, readInt(original));
+
+			// Displacement
+			writeInt(converted, readInt(original));
+
+			// Dead Zone (0x8)
+			writeInt(converted, readInt(original));
+			writeInt(converted, readInt(original));
+		}
+
+		// Translation Z
+		fseek(original, transZ.offset, SEEK_SET);
+		fseek(converted, transZ.offset, SEEK_SET);
+
+		for (uint32_t i = 0; i < transZ.number; ++i) {
+			// Animation Marker
+			writeInt(converted, readInt(original));
+
+			// Time
+			writeInt(converted, readInt(original));
+
+			// Displacement
+			writeInt(converted, readInt(original));
+
+			// Dead Zone (0x8)
+			writeInt(converted, readInt(original));
+			writeInt(converted, readInt(original));
+		}
 	}
 
 	fclose(original);
