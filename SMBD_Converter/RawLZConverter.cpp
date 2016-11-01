@@ -255,6 +255,7 @@ void parseRawLZ(char* filename) {
 	writeInt(converted, readInt(original));
 	writeInt(converted, readInt(original));
 
+	// Mystery Two
 	mysteryTwo.offset = readInt(original);
 	writeInt(converted, mysteryTwo.offset);
 
@@ -263,6 +264,7 @@ void parseRawLZ(char* filename) {
 		writeInt(converted, readInt(original));
 	}
 
+	// Mystery Three
 	mysteryThree.offset = readInt(original);
 	writeInt(converted, mysteryThree.offset);
 
@@ -274,7 +276,7 @@ void parseRawLZ(char* filename) {
 	// End of header
 
 	// Start Position
-
+	
 	fseek(original, startPositions.offset, SEEK_SET);
 	fseek(converted, startPositions.offset, SEEK_SET);
 
@@ -414,6 +416,7 @@ void parseRawLZ(char* filename) {
 
 		// Model Name offset
 		uint32_t modelNameOffset = readInt(original);
+		writeInt(converted, modelNameOffset);
 		copyAscii(original, converted, modelNameOffset);
 
 		// Padding
@@ -647,7 +650,7 @@ void parseRawLZ(char* filename) {
 	/// Time for some mysteries...
 
 	// stageAnimations
-
+	
 	fseek(original, stageAnimations.offset, SEEK_SET);
 	fseek(converted, stageAnimations.offset, SEEK_SET);
 
@@ -691,7 +694,7 @@ void parseRawLZ(char* filename) {
 		transZ.offset = readInt(original);
 		writeInt(converted, transZ.number);
 		writeInt(converted, transZ.offset);
-
+		
 		// Copy the animation frames
 		uint32_t savePos = ftell(original);
 
@@ -699,7 +702,7 @@ void parseRawLZ(char* filename) {
 		fseek(original, rotX.offset, SEEK_SET);
 		fseek(converted, rotX.offset, SEEK_SET);
 
-		for (uint32_t i = 0; i < rotX.number; ++i) {
+		for (int i = 0; i < rotX.number; ++i) {
 			// Animation Marker
 			writeInt(converted, readInt(original));
 
@@ -718,7 +721,7 @@ void parseRawLZ(char* filename) {
 		fseek(original, rotY.offset, SEEK_SET);
 		fseek(converted, rotY.offset, SEEK_SET);
 
-		for (uint32_t i = 0; i < rotY.number; ++i) {
+		for (int i = 0; i < rotY.number; ++i) {
 			// Animation Marker
 			writeInt(converted, readInt(original));
 
@@ -737,7 +740,7 @@ void parseRawLZ(char* filename) {
 		fseek(original, rotZ.offset, SEEK_SET);
 		fseek(converted, rotZ.offset, SEEK_SET);
 
-		for (uint32_t i = 0; i < rotZ.number; ++i) {
+		for (int i = 0; i < rotZ.number; ++i) {
 			// Animation Marker
 			writeInt(converted, readInt(original));
 
@@ -756,7 +759,7 @@ void parseRawLZ(char* filename) {
 		fseek(original, transX.offset, SEEK_SET);
 		fseek(converted, transX.offset, SEEK_SET);
 
-		for (uint32_t i = 0; i < transX.number; ++i) {
+		for (int i = 0; i < transX.number; ++i) {
 			// Animation Marker
 			writeInt(converted, readInt(original));
 
@@ -775,7 +778,7 @@ void parseRawLZ(char* filename) {
 		fseek(original, transY.offset, SEEK_SET);
 		fseek(converted, transY.offset, SEEK_SET);
 
-		for (uint32_t i = 0; i < transY.number; ++i) {
+		for (int i = 0; i < transY.number; ++i) {
 			// Animation Marker
 			writeInt(converted, readInt(original));
 
@@ -794,7 +797,7 @@ void parseRawLZ(char* filename) {
 		fseek(original, transZ.offset, SEEK_SET);
 		fseek(converted, transZ.offset, SEEK_SET);
 
-		for (uint32_t i = 0; i < transZ.number; ++i) {
+		for (int i = 0; i < transZ.number; ++i) {
 			// Animation Marker
 			writeInt(converted, readInt(original));
 
@@ -808,6 +811,31 @@ void parseRawLZ(char* filename) {
 			writeInt(converted, readInt(original));
 			writeInt(converted, readInt(original));
 		}
+	}
+	
+	// Mystery Two
+
+	fseek(original, mysteryTwo.offset, SEEK_SET);
+	fseek(converted, mysteryTwo.offset, SEEK_SET);
+	// Dead Zone (Endianess doesn't matter here) (0x24)
+	for (int i = 0; i < 0x24; ++i) {
+		writeNormalInt(converted, readInt(original));
+	}
+
+	// Mystery Three
+
+	fseek(original, mysteryThree.offset, SEEK_SET);
+	fseek(converted, mysteryThree.offset, SEEK_SET);
+	// Dead Zone (0xC)
+	for (int i = 0; i < 0xC; ++i) {
+		writeInt(converted, readInt(original));
+	}
+
+	writeNormalInt(converted, readInt(original));
+
+	// Dead Zone (0x14)
+	for (int i = 0; i < 0x14; ++i) {
+		writeInt(converted, readInt(original));
 	}
 
 	fclose(original);
