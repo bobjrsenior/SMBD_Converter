@@ -818,7 +818,7 @@ void parseRawLZ(char* filename) {
 	fseek(original, mysteryTwo.offset, SEEK_SET);
 	fseek(converted, mysteryTwo.offset, SEEK_SET);
 	// Dead Zone (Endianess doesn't matter here) (0x24)
-	for (int i = 0; i < 0x24; ++i) {
+	for (int i = 0; i < 0x24 / 0x4; ++i) {
 		writeNormalInt(converted, readInt(original));
 	}
 
@@ -827,14 +827,18 @@ void parseRawLZ(char* filename) {
 	fseek(original, mysteryThree.offset, SEEK_SET);
 	fseek(converted, mysteryThree.offset, SEEK_SET);
 	// Dead Zone (0xC)
-	for (int i = 0; i < 0xC; ++i) {
+	for (int i = 0; i < 0xC / 0x4; ++i) {
 		writeInt(converted, readInt(original));
 	}
 
-	writeNormalInt(converted, readInt(original));
+	// Zero/Padding
+	writeShort(converted, readShort(original));
+
+	// Some marker?
+	writeShort(converted, readShort(original));
 
 	// Dead Zone (0x14)
-	for (int i = 0; i < 0x14; ++i) {
+	for (int i = 0; i < 0x14 / 0x4; ++i) {
 		writeInt(converted, readInt(original));
 	}
 
