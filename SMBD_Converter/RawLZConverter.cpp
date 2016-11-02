@@ -308,7 +308,7 @@ void parseRawLZ(char* filename) {
 
 	fseek(original, goals.offset, SEEK_SET);
 	fseek(converted, goals.offset, SEEK_SET);
-
+	
 	for (int i = 0; i < goals.number; ++i) {
 		// Position
 		writeInt(converted, readInt(original));
@@ -322,7 +322,7 @@ void parseRawLZ(char* filename) {
 		// Goal Type (order preserved regardless of endianess)
 		writeNormalShort(converted, readShort(original));
 	}
-
+	
 	// Bumpers
 
 	fseek(original, bumpers.offset, SEEK_SET);
@@ -370,7 +370,7 @@ void parseRawLZ(char* filename) {
 		writeInt(converted, readInt(original));
 		writeInt(converted, readInt(original));
 	}
-
+	
 	// Bananas
 
 	fseek(original, bananas.offset, SEEK_SET);
@@ -383,9 +383,9 @@ void parseRawLZ(char* filename) {
 		writeInt(converted, readInt(original));
 
 		// Banana Type
-		writeNormalInt(converted, readInt(original));
+		writeInt(converted, readInt(original));
 	}
-
+	
 	// Mystery One
 
 	fseek(original, mysteryOne.offset, SEEK_SET);
@@ -406,7 +406,7 @@ void parseRawLZ(char* filename) {
 		writeInt(converted, readInt(original));
 		writeInt(converted, readInt(original));
 	}
-	fflush(converted);
+	
 	// Background Models
 
 	fseek(original, backgroundModels.offset, SEEK_SET);
@@ -447,7 +447,7 @@ void parseRawLZ(char* filename) {
 		}
 
 	}
-
+	
 	// Level Model As
 
 	fseek(original, levelModelA.offset, SEEK_SET);
@@ -514,7 +514,7 @@ void parseRawLZ(char* filename) {
 
 
 	}
-
+	
 	// Collision Fields
 
 	// Level Model Bs
@@ -535,8 +535,13 @@ void parseRawLZ(char* filename) {
 		// Padding
 		writeShort(converted, readShort(original));
 
-		// Offset to animation data (Will handle after non-animation is handled)
-		writeInt(converted, readInt(original));
+		// Offset to animation data
+		uint32_t animationOffset = readInt(original);
+		writeInt(converted, animationOffset);
+		if (animationOffset != 0) {
+			// Write animation data
+			copyAnimation(original, converted, animationOffset, readInt, writeInt);
+		}
 
 		// Dead Zone (May include model name reference) (0x10)
 		for (int j = 0; j < 0xC / 4; ++j) {
@@ -648,7 +653,7 @@ void parseRawLZ(char* filename) {
 		fseek(original, savePos, SEEK_SET);
 		fseek(converted, savePos, SEEK_SET);
 	}
-
+	
 	/// Time for some mysteries...
 
 	// stageAnimations
