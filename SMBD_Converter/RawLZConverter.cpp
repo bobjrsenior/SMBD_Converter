@@ -666,11 +666,33 @@ void parseRawLZ(char* filename) {
 		writeInt(converted, readInt(original));
 
 		// Copy of header for what gets animated with the collision field (0x458)
-		for (int j = 0; j < 0x458 / 4; ++j) {
+
+		// Initial header copy (0x70)
+		for (int j = 0; j < 0x70 / 4; ++j) {
+			writeInt(converted, readInt(original));
+		}
+
+		uint32_t myserty5Offset = readInt(original);
+		writeInt(converted, myserty5Offset);
+
+		// Rest of header copy (0x3E4)
+		for (int j = 0; j < 0x3E4 / 4; ++j) {
 			writeInt(converted, readInt(original));
 		}
 
 		uint32_t savePos = ftell(original);
+
+		// Copy Mystery 5
+		fseek(original, myserty5Offset, SEEK_SET);
+		fseek(converted, myserty5Offset, SEEK_SET);
+
+		// Zero/Unknown
+		writeInt(converted, readInt(original));
+
+		// 3 Floats
+		writeInt(converted, readInt(original));
+		writeInt(converted, readInt(original));
+		writeInt(converted, readInt(original));
 
 		// Handle the collision grid before the collision triangles to find which offset they end at
 		fseek(original, collisionGridPointerOffsets, SEEK_SET);
