@@ -14,3 +14,19 @@ Only for SMBD to SMB2. Incomplete and needs refactoring
 Just drag the file to be converted on the executable
 ### Command Line
 Add the file path as the command line parameter. Future support will include passing multiple files at once.
+
+## SMB2 Specifications
+### Raw LZ
+https://craftedcart.github.io/SMBLevelWorkshop/documentation/index.html?page=lzFormat2
+### GMA
+http://bin.smwcentral.net/u/21732/GMATPL_V2.txt
+### TPL
+http://bin.smwcentral.net/u/21732/GMATPL_V2.txt
+
+## SMBD Specifications
+### Raw LZ
+All known specs are in the SMB2 Raw LZ spec file. The only difference is everything is little endian instead of big endian
+### GMA
+TODO
+### TPL
+TODO
