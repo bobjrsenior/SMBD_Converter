@@ -281,7 +281,7 @@ void parseRawLZ(char* filename) {
 	
 	fseek(original, startPositions.offset, SEEK_SET);
 	fseek(converted, startPositions.offset, SEEK_SET);
-
+	
 	for (int i = 0; i < startPositions.number; ++i) {
 		// Position
 		writeInt(converted, readInt(original));
@@ -319,6 +319,7 @@ void parseRawLZ(char* filename) {
 		writeShort(converted, readShort(original));
 		writeShort(converted, readShort(original));
 		writeShort(converted, readShort(original));
+		
 		// Goal Type (order preserved regardless of endianess)
 		writeNormalShort(converted, readShort(original));
 	}
@@ -441,11 +442,107 @@ void parseRawLZ(char* filename) {
 		writeInt(converted, readInt(original));
 		writeInt(converted, readInt(original));
 
-		// Dead Zone (0xC)
-		for (int j = 0; j < 0xC / 4; ++j) {
+
+		// BG Animation 1?
+		uint32_t animation1Offset = readInt(original);
+		writeInt(converted, animation1Offset);
+
+		// BG Animation 2?
+		uint32_t animation2Offset = readInt(original);
+		writeInt(converted, animation2Offset);
+
+		// Mystery 4
+		uint32_t mysteryFour = readInt(original);
+		writeInt(converted, mysteryFour);
+
+		uint32_t savePos = ftell(original);
+
+		if (animation1Offset != 0) {
+			// Copy BG animation 1
+			fseek(original, animation1Offset, SEEK_SET);
+			fseek(converted, animation1Offset, SEEK_SET);
+
+			// Zero
+			writeInt(converted, readInt(original));
+
+			// Always 0x41000000 (ascii A)?
+			writeInt(converted, readInt(original));
+
+			// Zero/Unknown (0x18)
+			for (int j = 0; j < 0x18 / 4; ++j) {
+				writeInt(converted, readInt(original));
+			}
+
+			// Animation
+			copyAnimation(original, converted, ftell(original), readInt, writeInt);
+
+			// Seek past animation
+			fseek(original, 24, SEEK_CUR);
+			fseek(converted, 24, SEEK_CUR);
+
+			// Zero/Unknown (0x16)
+			for (int j = 0; j < 0x16 / 4; ++j) {
+				writeInt(converted, readInt(original));
+			}
+		}
+
+		if (animation2Offset != 0) {
+			// Copy BG animation 2
+			fseek(original, animation2Offset, SEEK_SET);
+			fseek(converted, animation2Offset, SEEK_SET);
+
+			// Zero
+			writeInt(converted, readInt(original));
+
+			// Always 0x41000000 (ascii A)?
+			writeInt(converted, readInt(original));
+
+			// Zero/Unknown (0x18)
+			for (int j = 0; j < 0x18 / 4; ++j) {
+				writeInt(converted, readInt(original));
+			}
+
+			// Animation
+			copyAnimation(original, converted, ftell(original), readInt, writeInt);
+
+			// Seek past animation
+			fseek(original, 24, SEEK_CUR);
+			fseek(converted, 24, SEEK_CUR);
+
+			// Zero/Unknown (0x16)
+			for (int j = 0; j < 0x16 / 4; ++j) {
+				writeInt(converted, readInt(original));
+			}
+		}
+
+		if (mysteryFour != 0) {
+			// Copy Mystery Four
+			fseek(original, mysteryFour, SEEK_SET);
+			fseek(converted, mysteryFour, SEEK_SET);
+
+			// Zero/Unknown (0x10)
+			for (int j = 0; j < 0x10 / 4; ++j) {
+				writeInt(converted, readInt(original));
+			}
+
+			uint32_t oddOffset = readInt(original);
+			writeInt(converted, oddOffset);
+
+			// Zero/Unknown (0x1C)
+			for (int j = 0; j < 0x1C / 4; ++j) {
+				writeInt(converted, readInt(original));
+			}
+
+			fseek(original, oddOffset, SEEK_SET);
+			fseek(converted, oddOffset, SEEK_SET);
+
+			// Two floats
+			writeInt(converted, readInt(original));
 			writeInt(converted, readInt(original));
 		}
 
+		fseek(original, savePos, SEEK_SET);
+		fseek(converted, savePos, SEEK_SET);
 	}
 	
 	// Level Model As
