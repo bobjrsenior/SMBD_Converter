@@ -683,16 +683,18 @@ void parseRawLZ(char* filename) {
 		uint32_t savePos = ftell(original);
 
 		// Copy Mystery 5
-		fseek(original, myserty5Offset, SEEK_SET);
-		fseek(converted, myserty5Offset, SEEK_SET);
+		if (myserty5Offset != 0) {
+			fseek(original, myserty5Offset, SEEK_SET);
+			fseek(converted, myserty5Offset, SEEK_SET);
 
-		// Zero/Unknown
-		writeInt(converted, readInt(original));
+			// Zero/Unknown
+			writeInt(converted, readInt(original));
 
-		// 3 Floats
-		writeInt(converted, readInt(original));
-		writeInt(converted, readInt(original));
-		writeInt(converted, readInt(original));
+			// 3 Floats
+			writeInt(converted, readInt(original));
+			writeInt(converted, readInt(original));
+			writeInt(converted, readInt(original));
+		}
 
 		// Handle the collision grid before the collision triangles to find which offset they end at
 		fseek(original, collisionGridPointerOffsets, SEEK_SET);
@@ -776,36 +778,39 @@ void parseRawLZ(char* filename) {
 	/// Time for some mysteries...
 
 	// stageAnimations
-	
-	copyAnimation(original, converted, stageAnimations.offset, readInt, writeInt);
+	if (stageAnimations.offset != 0) {
+		copyAnimation(original, converted, stageAnimations.offset, readInt, writeInt);
+	}
 
 	// Mystery Two
-
-	fseek(original, mysteryTwo.offset, SEEK_SET);
-	fseek(converted, mysteryTwo.offset, SEEK_SET);
-	// Dead Zone (Endianess doesn't matter here) (0x24)
-	for (int i = 0; i < 0x24 / 0x4; ++i) {
-		writeNormalInt(converted, readInt(original));
+	if (mysteryTwo.offset != 0) {
+		fseek(original, mysteryTwo.offset, SEEK_SET);
+		fseek(converted, mysteryTwo.offset, SEEK_SET);
+		// Dead Zone (Endianess doesn't matter here) (0x24)
+		for (int i = 0; i < 0x24 / 0x4; ++i) {
+			writeNormalInt(converted, readInt(original));
+		}
 	}
 
 	// Mystery Three
+	if (mysteryThree.offset != 0) {
+		fseek(original, mysteryThree.offset, SEEK_SET);
+		fseek(converted, mysteryThree.offset, SEEK_SET);
+		// Dead Zone (0xC)
+		for (int i = 0; i < 0xC / 0x4; ++i) {
+			writeInt(converted, readInt(original));
+		}
 
-	fseek(original, mysteryThree.offset, SEEK_SET);
-	fseek(converted, mysteryThree.offset, SEEK_SET);
-	// Dead Zone (0xC)
-	for (int i = 0; i < 0xC / 0x4; ++i) {
-		writeInt(converted, readInt(original));
-	}
+		// Zero/Padding
+		writeShort(converted, readShort(original));
 
-	// Zero/Padding
-	writeShort(converted, readShort(original));
+		// Some marker?
+		writeShort(converted, readShort(original));
 
-	// Some marker?
-	writeShort(converted, readShort(original));
-
-	// Dead Zone (0x14)
-	for (int i = 0; i < 0x14 / 0x4; ++i) {
-		writeInt(converted, readInt(original));
+		// Dead Zone (0x14)
+		for (int i = 0; i < 0x14 / 0x4; ++i) {
+			writeInt(converted, readInt(original));
+		}
 	}
 
 	fclose(original);
