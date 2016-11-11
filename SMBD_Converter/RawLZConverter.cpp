@@ -620,6 +620,7 @@ void parseRawLZ(char* filename) {
 	fseek(converted, collisionFields.offset, SEEK_SET);
 
 	for (int i = 0; i < collisionFields.number; ++i) {
+		//if (i == 1) { return; }
 		// Center Animation Position
 		writeInt(converted, readInt(original));
 		writeInt(converted, readInt(original));
@@ -667,15 +668,57 @@ void parseRawLZ(char* filename) {
 
 		// Copy of header for what gets animated with the collision field (0x458)
 
-		// Initial header copy (0x70)
-		for (int j = 0; j < 0x70 / 4; ++j) {
+		// Number of Goals
+		writeInt(converted, readInt(original));
+
+		// Offset to Goals
+		writeInt(converted, readInt(original));
+
+		// Number of Bumpers
+		writeInt(converted, readInt(original));
+
+		// Offset to Bumpers
+		writeInt(converted, readInt(original));
+
+		// Number of Jamabars
+		writeInt(converted, readInt(original));
+
+		// Offset to Jamabars
+		writeInt(converted, readInt(original));
+
+		// Number of Bananas
+		writeInt(converted, readInt(original));
+		
+		// Offset to Bananas
+		writeInt(converted, readInt(original));
+
+		// Unknown/Zero (0x30)
+		for (int j = 0; j < 0x30 / 4; ++j) {
 			writeInt(converted, readInt(original));
 		}
 
+		// Number of Level Models
+		writeInt(converted, readInt(original));
+
+		// Offset to Level Models
+		writeInt(converted, readInt(original));
+
+		// Mystery Six
+		uint32_t mystery6Offset = 0;// readInt(original);
+		//writeInt(converted, mystery6Offset);
+
+		// Next part of header copy (0x18)
+		for (int j = 0; j < 0x18 / 4; ++j) {
+			writeInt(converted, readInt(original));
+		}
+
+		// Mystery Five
 		uint32_t myserty5Offset = readInt(original);
+		//printf("TELL: %d\n", ftell(original));
+		//return;
 		writeInt(converted, myserty5Offset);
 
-		// Rest of header copy (0x3E4)
+		// Rest of header copy (0x3D0)
 		for (int j = 0; j < 0x3E4 / 4; ++j) {
 			writeInt(converted, readInt(original));
 		}
@@ -694,6 +737,17 @@ void parseRawLZ(char* filename) {
 			writeInt(converted, readInt(original));
 			writeInt(converted, readInt(original));
 			writeInt(converted, readInt(original));
+		}
+
+		if (mystery6Offset != 0) {
+			fseek(original, mystery6Offset, SEEK_SET);
+			fseek(converted, mystery6Offset, SEEK_SET);
+			// 4 Floats
+			writeInt(converted, readInt(original));
+			writeInt(converted, readInt(original));
+			writeInt(converted, readInt(original));
+			writeInt(converted, readInt(original));
+
 		}
 
 		// Handle the collision grid before the collision triangles to find which offset they end at
