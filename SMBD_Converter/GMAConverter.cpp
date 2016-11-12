@@ -25,6 +25,8 @@ inline int compareModels(const void* a, const void* b) {
 	return aVal - bVal;
 }
 
+inline void copyChunk(FILE* input, FILE* output, uint32_t chunkSize, uint32_t(*readInt)(FILE*), void(*writeInt)(FILE*, uint32_t), uint16_t(*readShort)(FILE*), void(*writeShort)(FILE*, uint16_t));
+
 void parseGMA(char* filename) {
 	int game = 0;
 
@@ -263,10 +265,60 @@ void parseGMA(char* filename) {
 			writeInt(converted, readInt(original));
 		}
 
-
-		return;
+		copyChunk(original, converted, chunk1Size, readInt, writeInt, readShort, writeShort);
+		copyChunk(original, converted, chunk2Size, readInt, writeInt, readShort, writeShort);
 	}
 
 	fclose(original);
 	fclose(converted);
+}
+
+inline void copyChunk(FILE* input, FILE* output, uint32_t chunkSize, uint32_t(*readInt)(FILE*), void(*writeInt)(FILE*, uint32_t), uint16_t(*readShort)(FILE*), void(*writeShort)(FILE*, uint16_t)) {
+	if (chunkSize == 0) { return; }
+	uint32_t initialPos = ftell(input);
+	
+	// Filler
+	putc(getc(input), output);
+	
+	// Make sure there is enough space left for another section (min size: 39 (0x27))
+	while(ftell(input) - initialPos < chunkSize - 39) {
+		// Type
+		uint8_t type = (uint8_t) getc(input);
+		putc(type, output);
+
+		// Error checking/there may be a type 99 to support
+		if (type != 0x98) {
+			printf("NOT 98: %d\nAT: %#04x", type, ftell(input));
+			return;
+		}
+
+		// Num verteces in part
+		uint16_t numVerts = readShort(input);
+		writeShort(output, numVerts);
+
+		// Copy verteces in part
+		for (int j = 0; j < numVerts; ++j) {
+			// Position (X, Y, Z)
+			writeInt(output, readInt(input));
+			writeInt(output, readInt(input));
+			writeInt(output, readInt(input));
+
+			// Normal (I, J, K)
+			writeInt(output, readInt(input));
+			writeInt(output, readInt(input));
+			writeInt(output, readInt(input));
+
+			// Color RGBA
+			writeInt(output, readInt(input));
+
+			// Texture (S, T)
+			writeInt(output, readInt(input));
+			writeInt(output, readInt(input));
+		}
+	}
+
+	// Trailing zeros
+	while (ftell(input) - initialPos < chunkSize) {
+		putc(getc(input), output);
+	}
 }
