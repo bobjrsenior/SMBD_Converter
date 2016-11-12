@@ -5,6 +5,7 @@
 #include <errno.h>
 #include "RawLZConverter.h"
 #include "TPLConverter.h"
+#include "GMAConverter.h"
 
 typedef struct {
 	uint32_t encoding;
@@ -35,7 +36,7 @@ typedef struct {
 
 //void parseTPL(char* filename);
 
-void parseGMA(char* filename);
+//void parseGMA(char* filename);
 
 int main(int argc, char*argv[]) {
 	if (argc == 1) {
@@ -242,7 +243,7 @@ int main(int argc, char*argv[]) {
 	fclose(output);
 }*/
 
-void parseGMA(char* filename) {
+/*void parseGMA(char* filename) {
 	std::string inputFile(filename);
 
 	std::string outputFile = inputFile + ".gc";
@@ -478,12 +479,12 @@ void parseGMA(char* filename) {
 		
 		/// Sections
 		{
-			/*uint32_t unknown1 = getc(input) + (getc(input) << 8) + (getc(input) << 16) + (getc(input) << 24);
-			putc((unknown1 >> 24) & 0xFF, output);
-			putc((unknown1 >> 16) & 0xFF, output);
-			putc((unknown1 >> 8) & 0xFF, output);
-			putc(unknown1 & 0xFF, output);
-			*/
+			//uint32_t unknown1 = getc(input) + (getc(input) << 8) + (getc(input) << 16) + (getc(input) << 24);
+			//putc((unknown1 >> 24) & 0xFF, output);
+			//putc((unknown1 >> 16) & 0xFF, output);
+			//putc((unknown1 >> 8) & 0xFF, output);
+			//putc(unknown1 & 0xFF, output);
+			
 			uint32_t unknown2 = getc(input) + (getc(input) << 8) + (getc(input) << 16) + (getc(input) << 24);
 			putc((unknown2 >> 24) & 0xFF, output);
 			putc((unknown2 >> 16) & 0xFF, output);
@@ -728,3 +729,4 @@ void parseGMA(char* filename) {
 	fclose(input);
 	fclose(output);
 }
+*/
