@@ -130,5 +130,143 @@ void parseGMA(char* filename) {
 	}
 
 
+	// Copy Models
+	for (int i = 0; i < (int)numModels; ++i) {
+		fseek(original, modelBaseOffset + models[i].modelOffsetFromBase, SEEK_SET);
+		fseek(converted, modelBaseOffset + models[i].modelOffsetFromBase, SEEK_SET);
 
+		// ASCII (int) "GCMF"
+		writeInt(converted, readInt(original));
+
+		// Unknown uint32
+		writeInt(converted, readInt(original));
+
+		// 4 Unknown Floats (0x10)
+		for (int j = 0; j < 0x10 / 4; ++j) {
+			writeInt(converted, readInt(original));
+		}
+
+		// Number of textures
+		uint16_t numTextures = readShort(original);
+		writeShort(converted, numTextures);
+
+		// Number of textures in section 1
+		uint16_t numTexturesSection1 = readShort(original);
+		writeShort(converted, numTexturesSection1);
+
+		// Number of textures in section 2
+		uint16_t numTexturesSection2 = readShort(original);
+		writeShort(converted, numTexturesSection2);
+
+		// Number of header blobs (unknown)?
+		putc(getc(original), converted);
+
+		// Check byte (0x00)
+		putc(getc(original), converted);
+
+		// End of header offset (unknown)?
+		writeInt(converted, readInt(original));
+
+		// Check uint32 (0)
+		writeInt(converted, readInt(original));
+
+		// Check int32 (-1)
+		writeInt(converted, readInt(original));
+
+		// Check int32 (-1)
+		writeInt(converted, readInt(original));
+
+		// Check uint32 (0)
+		writeInt(converted, readInt(original));
+
+		// Check uint32 (0)
+		writeInt(converted, readInt(original));
+
+		// Check uint32 (0)
+		writeInt(converted, readInt(original));
+
+		// Check uint32 (0)
+		writeInt(converted, readInt(original));
+
+
+		// Copy texture headers
+		for (int j = 0; j < numTextures; ++j) {
+			// Unknown int (lat byte = clamping: 0x80 CLAMP BOTH, 0x84 CLAMP T 0x90 CLAMP S, 0x94 NO CLAMP)
+			writeInt(converted, readInt(original));
+
+			// TPL texture number
+			writeShort(converted, readShort(original));
+
+			// Unknown uint16
+			writeShort(converted, readShort(original));
+
+			// Check uint32 (0)
+			writeInt(converted, readInt(original));
+
+			// Unknown uint16
+			writeShort(converted, readShort(original));
+
+			// Texture index
+			writeShort(converted, readShort(original));
+
+			// Unknown uint32
+			writeInt(converted, readInt(original));
+
+			// Check uint32 (0)
+			writeInt(converted, readInt(original));
+
+			// Check uint32 (0)
+			writeInt(converted, readInt(original));
+
+			// Check uint32 (0)
+			writeInt(converted, readInt(original));
+		}
+
+		// Section Header
+		// 5 Unknown uint32 (0x14)
+		for (int j = 0; j < 0x14 / 4; ++j) {
+			writeInt(converted, readInt(original));
+		}
+
+		// 4 Unknown uint16 (0x8)
+		for (int j = 0; j < 0x8 / 2; ++j) {
+			writeShort(converted, readShort(original));
+		}
+
+		// Vertex flags
+		writeInt(converted, readInt(original));
+
+		// Check int32 (-1)
+		writeInt(converted, readInt(original));
+
+		// Check int32 (-1)
+		writeInt(converted, readInt(original));
+
+		// Chunk 1 size
+		uint32_t chunk1Size = readInt(original);
+		writeInt(converted, chunk1Size);
+
+		// Chunk 2 size
+		uint32_t chunk2Size = readInt(original);
+		writeInt(converted, chunk2Size);
+
+		// 4 Unknown float (0x10)
+		for (int j = 0; j < 0x10 / 4; ++j) {
+			writeInt(converted, readInt(original));
+		}
+
+		// Unknown uint32
+		writeInt(converted, readInt(original));
+
+		// 7 Check int32 (0) (0x1C)
+		for (int j = 0; j < 0x1C / 4; ++j) {
+			writeInt(converted, readInt(original));
+		}
+
+
+		return;
+	}
+
+	fclose(original);
+	fclose(converted);
 }
