@@ -144,9 +144,12 @@
   <ItemGroup>
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="RawLZConverter.cpp" />
+    <ClCompile Include="TPLConverter.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="FunctionsAndDefines.h" />
     <ClInclude Include="RawLZConverter.h" />
+    <ClInclude Include="TPLConverter.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

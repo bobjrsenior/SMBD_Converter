@@ -1,13 +1,10 @@
-#ifdef _MSC_VER
-#define _CRT_SECURE_NO_WARNINGS
-#endif
-
 #include <stdio.h>
 #include <string>
 #include <iostream>
 #include <stdint.h>
 #include <errno.h>
 #include "RawLZConverter.h"
+#include "TPLConverter.h"
 
 typedef struct {
 	uint32_t encoding;
@@ -36,7 +33,7 @@ typedef struct {
 
 }Model;
 
-void parseTPL(char* filename);
+//void parseTPL(char* filename);
 
 void parseGMA(char* filename);
 
@@ -62,7 +59,7 @@ int main(int argc, char*argv[]) {
 	
 }
 
-void parseTPL(char* filename) {
+/*void parseTPL(char* filename) {
 	const int CMPR = 14;
 	const int I8 = 1;
 
@@ -155,15 +152,15 @@ void parseTPL(char* filename) {
 		// Copy texture data
 		while (((uint32_t) ftell(input)) < fileSize || (i < numTextures - 1 && ((uint32_t) ftell(input)) < textures[i + 1].offset)) {
 			if (textures[i].encoding == CMPR) {
-				/*
-				uint16_t pallete1 = getc(input) + (getc(input) << 8);
-				putc((pallete1 >> 8) & 0xFF, output);
-				putc(pallete1 & 0xFF, output);
+				
+				//uint16_t pallete1 = getc(input) + (getc(input) << 8);
+				//putc((pallete1 >> 8) & 0xFF, output);
+				//putc(pallete1 & 0xFF, output);
 
-				uint16_t pallete2 = getc(input) + (getc(input) << 8);
-				putc((pallete2 >> 8) & 0xFF, output);
-				putc(pallete2 & 0xFF, output);
-				*/
+				//uint16_t pallete2 = getc(input) + (getc(input) << 8);
+				//putc((pallete2 >> 8) & 0xFF, output);
+				//putc(pallete2 & 0xFF, output);
+				
 
 				
 				uint32_t palletes = (getc(input)) + (getc(input) << 8) + (getc(input) << 16) + (getc(input) << 24);
@@ -243,7 +240,7 @@ void parseTPL(char* filename) {
 	std::cout << "WROTE TEXTURES" << std::endl;
 	fclose(input);
 	fclose(output);
-}
+}*/
 
 void parseGMA(char* filename) {
 	std::string inputFile(filename);
