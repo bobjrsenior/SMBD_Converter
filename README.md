@@ -5,7 +5,7 @@ A tool for converting files between Super Monkey Ball 2 (SMB2) and Super Monkey 
 ### Raw LZ
 Mostly supported. st201 and st002 are converted perfectly. More testing needs to be done for missing offsets/values.
 ### TPL
-Only converts from SMBD to SMB2. Works for uncompressed textures. Needs refactoring.
+Experimental conversion from SMB2 to SMBD (gma will need to be implemented before testing due to slight texture differences in equivilent levels).
 ### GMA
 Only for SMBD to SMB2. Incomplete and needs refactoring
 
