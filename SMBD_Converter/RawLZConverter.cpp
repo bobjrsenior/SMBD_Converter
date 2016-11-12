@@ -1,6 +1,6 @@
 #include "RawLZConverter.h"
 
-inline void copyAscii(FILE *input, FILE *output, uint32_t offset) {
+inline void copyAsciiAligned(FILE *input, FILE *output, uint32_t offset) {
 	uint32_t savePos = ftell(input);
 	fseek(input, offset, SEEK_SET);
 	fseek(output, offset, SEEK_SET);
@@ -149,7 +149,7 @@ void parseRawLZ(char* filename) {
 	writeInt(converted, bananas.number);
 	writeInt(converted, bananas.offset);
 
-	// Dead Zone (0x1C)8
+	// Dead Zone (0x18)
 	for (int i = 0; i < 0x18 / 4; ++i) {
 		writeInt(converted, readInt(original));
 	}
@@ -182,7 +182,7 @@ void parseRawLZ(char* filename) {
 	levelModelB.offset = readInt(original);
 	writeInt(converted, levelModelB.number);
 	writeInt(converted, levelModelB.offset);
-
+	
 	// Dead Zone (0x14)
 	for (int i = 0; i < 0x14 / 4; ++i) {
 		writeInt(converted, readInt(original));
@@ -359,7 +359,7 @@ void parseRawLZ(char* filename) {
 		// Model Name offset
 		uint32_t modelNameOffset = readInt(original);
 		writeInt(converted, modelNameOffset);
-		copyAscii(original, converted, modelNameOffset);
+		copyAsciiAligned(original, converted, modelNameOffset);
 
 		// Padding
 		writeInt(converted, readInt(original));
@@ -485,7 +485,7 @@ void parseRawLZ(char* filename) {
 	}
 	
 	// Level Model As
-
+	
 	fseek(original, levelModelA.offset, SEEK_SET);
 	fseek(converted, levelModelA.offset, SEEK_SET);
 
@@ -512,14 +512,14 @@ void parseRawLZ(char* filename) {
 
 		uint32_t modelNameOffset = readInt(original);
 		writeInt(converted, modelNameOffset);
-		copyAscii(original, converted, modelNameOffset);
+		copyAsciiAligned(original, converted, modelNameOffset);
 
 		fseek(original, savePos, SEEK_SET);
 		fseek(converted, savePos, SEEK_SET);
 
 
 	}
-
+	
 	// Level Model Bs
 
 	fseek(original, levelModelB.offset, SEEK_SET);
@@ -543,7 +543,7 @@ void parseRawLZ(char* filename) {
 
 		uint32_t levelModelAOffset = readInt(original);
 		writeInt(converted, levelModelAOffset);
-		//copyAscii(original, converted, modelNameOffset);
+		//copyAsciiALigned(original, converted, modelNameOffset);
 
 		fseek(original, savePos, SEEK_SET);
 		fseek(converted, savePos, SEEK_SET);
@@ -552,8 +552,6 @@ void parseRawLZ(char* filename) {
 	}
 	
 	// Collision Fields
-
-	// Level Model Bs
 
 	fseek(original, collisionFields.offset, SEEK_SET);
 	fseek(converted, collisionFields.offset, SEEK_SET);
@@ -686,14 +684,14 @@ void parseRawLZ(char* filename) {
 			writeInt(converted, readInt(original));
 
 		}
-
+		
 		// Handle the collision grid before the collision triangles to find which offset they end at
 		fseek(original, collisionGridPointerOffsets, SEEK_SET);
 		fseek(converted, collisionGridPointerOffsets, SEEK_SET);
 
 		uint32_t triangleCollisionEnd = readInt(original);
 		fseek(original, -4, SEEK_CUR);
-
+		
 		do {
 			uint32_t collisionGridOffset = readInt(original);
 
@@ -701,7 +699,9 @@ void parseRawLZ(char* filename) {
 			if (collisionGridOffset >= 0x01000000) {
 				break;
 			}
-
+			if (collisionGridOffset <= 0x89C) {
+				break;
+			}
 			writeInt(converted, collisionGridOffset);
 
 			// 0 == No triangles here
@@ -724,7 +724,7 @@ void parseRawLZ(char* filename) {
 			}
 
 		} while (1);
-
+		
 		// Handle Collision Triangles
 		fseek(original, triangleDataOffset, SEEK_SET);
 		fseek(converted, triangleDataOffset, SEEK_SET);

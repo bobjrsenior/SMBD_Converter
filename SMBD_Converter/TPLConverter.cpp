@@ -117,7 +117,7 @@ void parseTPL(char* filename) {
 		// Height
 		textures[i].height = readShort(original);
 
-		// Unknown (Maybe texture type?)
+		// Level Count (mip maps)
 		textures[i].unknown = readShort(original);
 
 		// Always 0x1234?
