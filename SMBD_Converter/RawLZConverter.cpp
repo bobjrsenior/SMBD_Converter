@@ -100,6 +100,7 @@ void parseRawLZ(const char* filename) {
 	Item levelModelA;
 	Item levelModelB;
 	Item switches;
+	Item fogAnimation;
 	Item wormholes;
 	Item fog;
 	Item mysteryThree;
@@ -209,10 +210,14 @@ void parseRawLZ(const char* filename) {
 	writeInt(converted, switches.number);
 	writeInt(converted, switches.offset);
 
-	// Unknown/Null (0xAC, length = 0x8)
-	for (int i = 0; i < 0x8; i += 4) {
+	// Unknown/Null (0xAC, length = 0x4)
+	for (int i = 0; i < 0x4; i += 4) {
 		writeInt(converted, readInt(original));
 	}
+
+	// Fog Animation (0xB0, length = 0x4)
+	fogAnimation.offset = readInt(original);
+	writeInt(converted, fogAnimation.offset);
 
 	// Wormholes (0xB4, length = 0x8)
 	wormholes.number = readInt(original);
@@ -268,6 +273,218 @@ void parseRawLZ(const char* filename) {
 	writeInt(converted, readInt(original));
 #pragma endregion Fallout_Y
 
+#pragma region Goals
+	fseek(original, goals.offset, SEEK_SET);
+	fseek(converted, goals.offset, SEEK_SET);
+
+	// Loop through goals
+	for (int i = 0; i < goals.number; i++) {
+		// Position (0x0, length = 0xC)
+		writeInt(converted, readInt(original)); // X
+		writeInt(converted, readInt(original)); // Y
+		writeInt(converted, readInt(original)); // Z
+
+		// Rotation (0xC, length = 0x6)
+		writeShort(converted, readShort(original)); // X
+		writeShort(converted, readShort(original)); // Y
+		writeShort(converted, readShort(original)); // Z
+
+		// Goal Type (0x12, length = 2, marker)
+		writeNormalShort(converted, readShort(original)); // Goal Type
+	}
+#pragma endregion Goals
+
+#pragma region Bumpers
+	fseek(original, bumpers.offset, SEEK_SET);
+	fseek(converted, bumpers.offset, SEEK_SET);
+
+	// Loop through bumpers
+	for (int i = 0; i < bumpers.number; i++) {
+		// Position (0x0, length = 0xC)
+		writeInt(converted, readInt(original)); // X
+		writeInt(converted, readInt(original)); // Y
+		writeInt(converted, readInt(original)); // Z
+
+		// Rotation (0xC, length = 0x8)
+		writeShort(converted, readShort(original)); // X
+		writeShort(converted, readShort(original)); // Y
+		writeShort(converted, readShort(original)); // Z
+		writeShort(converted, readShort(original)); // Padding/Null
+
+		// Scale (0x14, length = 0xC)
+		writeInt(converted, readInt(original)); // X
+		writeInt(converted, readInt(original)); // Y
+		writeInt(converted, readInt(original)); // Z
+	}
+#pragma endregion Bumpers
+
+#pragma region Jamabars
+	fseek(original, jamabars.offset, SEEK_SET);
+	fseek(converted, jamabars.offset, SEEK_SET);
+
+	// Loop through jamabars
+	for (int i = 0; i < jamabars.number; i++) {
+		// Position (0x0, length = 0xC)
+		writeInt(converted, readInt(original)); // X
+		writeInt(converted, readInt(original)); // Y
+		writeInt(converted, readInt(original)); // Z
+
+		// Rotation (0xC, length = 0x8)
+		writeShort(converted, readShort(original)); // X
+		writeShort(converted, readShort(original)); // Y
+		writeShort(converted, readShort(original)); // Z
+		writeShort(converted, readShort(original)); // Padding/Null
+
+		// Scale (0x14, length = 0xC)
+		writeInt(converted, readInt(original)); // X
+		writeInt(converted, readInt(original)); // Y
+		writeInt(converted, readInt(original)); // Z
+	}
+#pragma endregion Jamabars
+
+#pragma region Bananas
+	fseek(original, bananas.offset, SEEK_SET);
+	fseek(converted, bananas.offset, SEEK_SET);
+
+	// Loop through bananas
+	for (int i = 0; i < bananas.number; i++) {
+		// Position (0x0, length = 0xC)
+		writeInt(converted, readInt(original)); // X
+		writeInt(converted, readInt(original)); // Y
+		writeInt(converted, readInt(original)); // Z
+
+		// Banana Type (0xC, length = 4)
+		writeInt(converted, readInt(original));
+	}
+#pragma endregion Bananas
+
+#pragma region Fallout_Volume
+	fseek(original, falloutVolumes.offset, SEEK_SET);
+	fseek(converted, falloutVolumes.offset, SEEK_SET);
+
+	// Loop through falloutVolumes
+	for (int i = 0; i < falloutVolumes.number; i++) {
+		// Center Position (0x0, length = 0xC)
+		writeInt(converted, readInt(original)); // X
+		writeInt(converted, readInt(original)); // Y
+		writeInt(converted, readInt(original)); // Z
+
+		// Size (0x14, length = 0xC)
+		writeInt(converted, readInt(original)); // X
+		writeInt(converted, readInt(original)); // Y
+		writeInt(converted, readInt(original)); // Z
+
+		// Rotation (0xC, length = 0x8)
+		writeShort(converted, readShort(original)); // X
+		writeShort(converted, readShort(original)); // Y
+		writeShort(converted, readShort(original)); // Z
+		writeShort(converted, readShort(original)); // Padding/Null
+
+		
+	}
+#pragma endregion Fallout_Volume
+
+#pragma region Switch
+	fseek(original, switches.offset, SEEK_SET);
+	fseek(converted, switches.offset, SEEK_SET);
+
+	// Loop through switches
+	for (int i = 0; i < switches.number; i++) {
+		// Position (0x0, length = 0xC)
+		writeInt(converted, readInt(original)); // X
+		writeInt(converted, readInt(original)); // Y
+		writeInt(converted, readInt(original)); // Z
+
+		// Rotation (0xC, length = 0x6)
+		writeShort(converted, readShort(original)); // X
+		writeShort(converted, readShort(original)); // Y
+		writeShort(converted, readShort(original)); // Z
+
+		// Switch type (0x12, length = 0x2)
+		writeShort(converted, readShort(original)); // Switch Type
+
+		// Animation Group IDs affected (0x14, length = 0x2)
+		writeShort(converted, readShort(original)); // Group IDs
+
+		// Padding/Null (0x16, length = 0x2)
+		writeShort(converted, readShort(original));
+	}
+#pragma endregion Switch
+
+#pragma region Wormhole
+	fseek(original, wormholes.offset, SEEK_SET);
+	fseek(converted, wormholes.offset, SEEK_SET);
+
+	// Loop through wormholes
+	for (int i = 0; i < wormholes.number; i++) {
+		// Position (0x0, length = 0xC)
+		writeInt(converted, readInt(original)); // X
+		writeInt(converted, readInt(original)); // Y
+		writeInt(converted, readInt(original)); // Z
+
+		// Rotation (0xC, length = 0x8)
+		writeShort(converted, readShort(original)); // X
+		writeShort(converted, readShort(original)); // Y
+		writeShort(converted, readShort(original)); // Z
+		writeShort(converted, readShort(original)); // Padding/Null
+
+		// Offset to destination wormwhole (0x14, length = 0x4)
+		writeInt(converted, readInt(original));
+	}
+#pragma endregion Wormhole
+
+#pragma region Fog
+	fseek(original, fog.offset, SEEK_SET);
+	fseek(converted, fog.offset, SEEK_SET);
+
+	// Fog Id (0x0, length = 0x4)
+	writeInt(converted, readInt(original));
+	
+	// Distance (0x4, length = 0x8)
+	writeInt(converted, readInt(original)); // Start Distance
+	writeInt(converted, readInt(original)); // End Distance
+
+	// Color (0xC, length = 0xC)
+	writeInt(converted, readInt(original)); // Red
+	writeInt(converted, readInt(original)); // Green
+	writeInt(converted, readInt(original)); // Blue
+
+	// Unknown/Null (0x18, length = 0xC)
+	for (int i = 0; i < 0xC; i += 4) {
+		writeInt(converted, readInt(original));
+	}
+
+#pragma endregion Fog
+
+#pragma region Fog_Animation
+	fseek(original, fogAnimation.offset, SEEK_SET);
+	fseek(converted, fogAnimation.offset, SEEK_SET);
+
+	// Animation (0x0, length = 0x40)
+	copyAnimation(original, converted, fogAnimation.offset, readInt, writeInt);
+#pragma endregion Fog_Animation
+
+#pragma region Mystery_Three
+	fseek(original, fogAnimation.offset, SEEK_SET);
+	fseek(converted, fogAnimation.offset, SEEK_SET);
+
+	// Position? (0x0, length = 0xC)
+	writeInt(converted, readInt(original));
+	writeInt(converted, readInt(original));
+	writeInt(converted, readInt(original));
+
+	// Padding/Null (0xC, length = 0x2)
+	writeShort(converted, readShort(original));
+
+	// Some Marker (0xE, length = 0x2);
+	writeNormalShort(converted, readShort(original));
+
+	// Unknown/Null (0x10, length = 0x14)
+	for (int i = 0; i < 0x14; i += 4) {
+		writeInt(converted, readInt(original));
+	}
+
+#pragma endregion Mystery_Three
 
 
 	fclose(original);
@@ -275,7 +492,7 @@ void parseRawLZ(const char* filename) {
 }
 
 inline void copyAnimation(FILE *input, FILE *output, uint32_t offset, uint32_t(*readInt)(FILE*), void(*writeInt)(FILE*, uint32_t)) {
-	
+	// TODO
 	uint32_t savePos = ftell(input);
 
 	fseek(input, offset, SEEK_SET);
