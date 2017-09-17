@@ -94,715 +94,181 @@ void parseRawLZ(const char* filename) {
 	Item bumpers;
 	Item jamabars;
 	Item bananas;
-	Item mysteryOne;
+	Item falloutVolumes;
 	Item backgroundModels;
+	Item reflectiveModels;
 	Item levelModelA;
 	Item levelModelB;
-	Item stageAnimations;
-	Item mysteryTwo;
+	Item switches;
+	Item wormholes;
+	Item fog;
 	Item mysteryThree;
-	// More Items I still need to figure out/waiting for Yohsi to document
+
+#pragma region File_Header
 
 
-	// Header
+	// Header (0x0, length = 0x8)
 	writeInt(converted, readInt(original));
 	writeInt(converted, readInt(original));
 
-	// Collision Fields
+	// Collision Header (0x8, length = 0x8)
 	collisionFields.number = readInt(original);
 	collisionFields.offset = readInt(original);
 	writeInt(converted, collisionFields.number);
 	writeInt(converted, collisionFields.offset);
 
-	// Start Positions
+	// Start positions (0x10, length = 0x4)
 	startPositions.offset = readInt(original);
 	writeInt(converted, startPositions.offset);
 
-	// Fallout Y
+	// Fallout Y (0x14, length = 0x4)
 	falloutY.offset = readInt(original);
 	writeInt(converted, falloutY.offset);
 
-	// Number of start positions is determined by the fallout Y offset
+	// The number of start positions is the fallout Y offset - startPosition offset / sizeof(startPosition)
 	startPositions.number = (falloutY.offset - startPositions.offset) / 0x14;
 
-	// Goals
+	// Goals (0x18, length = 0x8)
 	goals.number = readInt(original);
 	goals.offset = readInt(original);
 	writeInt(converted, goals.number);
 	writeInt(converted, goals.offset);
 
-	// Bumpers
+	// Bumpers (0x20, length = 0x8)
 	bumpers.number = readInt(original);
 	bumpers.offset = readInt(original);
-	writeInt(converted, bumpers.number);
-	writeInt(converted, bumpers.offset);
+	writeInt(converted, goals.number);
+	writeInt(converted, goals.offset);
 
-	// Jamabars
+	// Jamabars (0x28, length = 0x8)
 	jamabars.number = readInt(original);
 	jamabars.offset = readInt(original);
 	writeInt(converted, jamabars.number);
 	writeInt(converted, jamabars.offset);
 
-	// Bananas
+	// Bananas (0x30, length = 0x8)
 	bananas.number = readInt(original);
 	bananas.offset = readInt(original);
 	writeInt(converted, bananas.number);
 	writeInt(converted, bananas.offset);
 
-	// Dead Zone (0x18)
-	for (int i = 0; i < 0x18 / 4; ++i) {
+	// Unknown/Null (0x38, length = 0x18)
+	for (int i = 0; i < 0x18; i += 4) {
 		writeInt(converted, readInt(original));
 	}
 
-	// Unknown
-	mysteryOne.number = readInt(original);
-	mysteryOne.offset = readInt(original);
-	writeInt(converted, mysteryOne.number);
-	writeInt(converted, mysteryOne.offset);
+	// Fallout Volumes (0x50, length = 0x8)
+	falloutVolumes.number = readInt(original);
+	falloutVolumes.offset = readInt(original);
+	writeInt(converted, falloutVolumes.number);
+	writeInt(converted, falloutVolumes.offset);
 
-	// Background Models
+	// Background Models (0x58, length = 0x8)
 	backgroundModels.number = readInt(original);
 	backgroundModels.offset = readInt(original);
 	writeInt(converted, backgroundModels.number);
 	writeInt(converted, backgroundModels.offset);
 
-	// 3 zeros, 1 one, 7 zeros
-	for (int i = 0; i < 11; ++i) {
+	// Unknown/Null (0x60, length = 0xC)
+	for (int i = 0; i < 0xC; i += 4) {
 		writeInt(converted, readInt(original));
 	}
 
-	// Level Model A
+	// One (0x6C, length = 0x4)
+	writeInt(converted, readInt(original));
+
+	// Reflective Models (0x70, length = 0x8)
+	reflectiveModels.number = readInt(original);
+	reflectiveModels.offset = readInt(converted);
+
+	// Unknown/Null (0x78, length = 0x14)
+	for (int i = 0; i < 0x14; i += 4) {
+		writeInt(converted, readInt(original));
+	}
+
+	// Level Model A (0x8C, length = 0x8)
 	levelModelA.number = readInt(original);
 	levelModelA.offset = readInt(original);
 	writeInt(converted, levelModelA.number);
 	writeInt(converted, levelModelA.offset);
 
-	// Level Model B
+	// Level Model B (0x94, length = 0x8)
 	levelModelB.number = readInt(original);
 	levelModelB.offset = readInt(original);
 	writeInt(converted, levelModelB.number);
 	writeInt(converted, levelModelB.offset);
-	
-	// Dead Zone (0x14)
-	for (int i = 0; i < 0x14 / 4; ++i) {
+
+	// Unknown/Null (0x9C, length = 0x8)
+	for (int i = 0; i < 0x8; i += 4) {
 		writeInt(converted, readInt(original));
 	}
 
-	// Stage Animation
-	stageAnimations.offset = readInt(original);
-	writeInt(converted, stageAnimations.offset);
+	// Switches (0xA4, length = 0x8)
+	switches.number = readInt(original);
+	switches.offset = readInt(original);
+	writeInt(converted, switches.number);
+	writeInt(converted, switches.offset);
 
-	// Dead Zone (0x8)
-	writeInt(converted, readInt(original));
-	writeInt(converted, readInt(original));
-
-	// Mystery Two
-	mysteryTwo.offset = readInt(original);
-	writeInt(converted, mysteryTwo.offset);
-
-	// Dead Zone (0x14)
-	for (int i = 0; i < 0x14 / 4; ++i) {
+	// Unknown/Null (0xAC, length = 0x8)
+	for (int i = 0; i < 0x8; i += 4) {
 		writeInt(converted, readInt(original));
 	}
 
-	// Mystery Three
+	// Wormholes (0xB4, length = 0x8)
+	wormholes.number = readInt(original);
+	wormholes.offset = readInt(original);
+	writeInt(converted, wormholes.number);
+	writeInt(converted, wormholes.offset);
+
+	// Fog (0xBC, length = 0x4)
+	fog.offset = readInt(original);
+	writeInt(converted, fog.offset);
+
+	// Unknown/Null (0xC0, length = 0x14)
+	for (int i = 0; i < 0x14; i += 4) {
+		writeInt(converted, readInt(original));
+	}
+
+	// Mystery Three (0xD4, length = 0x4)
 	mysteryThree.offset = readInt(original);
 	writeInt(converted, mysteryThree.offset);
 
-	// Dead Zone (0x7C4)
-	for (int i = 0; i < 0x7E8 / 4; ++i) {
+	// Unknown/Null (0xD8, length = 0x7C4)
+	for (int i = 0; i < 0x7C4; i += 4) {
 		writeInt(converted, readInt(original));
 	}
 
-	// End of header
+#pragma endregion File_Header
 
-	// Start Position
-	
+
+#pragma region Start_Positions
 	fseek(original, startPositions.offset, SEEK_SET);
 	fseek(converted, startPositions.offset, SEEK_SET);
-	
-	for (int i = 0; i < startPositions.number; ++i) {
-		// Position
-		writeInt(converted, readInt(original));
-		writeInt(converted, readInt(original));
-		writeInt(converted, readInt(original));
 
-		// Rotation
-		writeShort(converted, readShort(original));
-		writeShort(converted, readShort(original));
-		writeShort(converted, readShort(original));
-		// Padding
-		writeShort(converted, readShort(original));
+	// Loop through start positions
+	for (int i = 0; i < startPositions.number; i++) {
+		// Position (0x0, length = 0xC)
+		writeInt(converted, readInt(original)); // X
+		writeInt(converted, readInt(original)); // Y
+		writeInt(converted, readInt(original)); // Z
+
+		// Rotation (0xC, length = 0x8)
+		writeShort(converted, readShort(original)); // X
+		writeShort(converted, readShort(original)); // Y
+		writeShort(converted, readShort(original)); // Z
+		writeShort(converted, readShort(original)); // Padding/Null
 	}
+#pragma endregion Start_Positions
 
-	// Fallout Y
-
+#pragma region Fallout_Y
 	fseek(original, falloutY.offset, SEEK_SET);
 	fseek(converted, falloutY.offset, SEEK_SET);
+
+	// Fallout Y (0x0, length = 0x4)
 	writeInt(converted, readInt(original));
+#pragma endregion Fallout_Y
 
-	// Order would be write collision fields next, but lets save that for later...
 
-	// Goals
-
-	fseek(original, goals.offset, SEEK_SET);
-	fseek(converted, goals.offset, SEEK_SET);
-	
-	for (int i = 0; i < goals.number; ++i) {
-		// Position
-		writeInt(converted, readInt(original));
-		writeInt(converted, readInt(original));
-		writeInt(converted, readInt(original));
-
-		// Rotation
-		writeShort(converted, readShort(original));
-		writeShort(converted, readShort(original));
-		writeShort(converted, readShort(original));
-		
-		// Goal Type (order preserved regardless of endianess)
-		writeNormalShort(converted, readShort(original));
-	}
-	
-	// Bumpers
-
-	fseek(original, bumpers.offset, SEEK_SET);
-	fseek(converted, bumpers.offset, SEEK_SET);
-
-	for (int i = 0; i < bumpers.number; ++i) {
-		// Position
-		writeInt(converted, readInt(original));
-		writeInt(converted, readInt(original));
-		writeInt(converted, readInt(original));
-
-		// Rotation
-		writeShort(converted, readShort(original));
-		writeShort(converted, readShort(original));
-		writeShort(converted, readShort(original));
-		// Padding
-		writeShort(converted, readShort(original));
-
-		// Scale
-		writeInt(converted, readInt(original));
-		writeInt(converted, readInt(original));
-		writeInt(converted, readInt(original));
-	}
-
-	// Jamabars
-
-	fseek(original, jamabars.offset, SEEK_SET);
-	fseek(converted, jamabars.offset, SEEK_SET);
-
-	for (int i = 0; i < jamabars.number; ++i) {
-		// Position
-		writeInt(converted, readInt(original));
-		writeInt(converted, readInt(original));
-		writeInt(converted, readInt(original));
-
-		// Rotation
-		writeShort(converted, readShort(original));
-		writeShort(converted, readShort(original));
-		writeShort(converted, readShort(original));
-		// Padding
-		writeShort(converted, readShort(original));
-
-		// Scale
-		writeInt(converted, readInt(original));
-		writeInt(converted, readInt(original));
-		writeInt(converted, readInt(original));
-	}
-	
-	// Bananas
-
-	fseek(original, bananas.offset, SEEK_SET);
-	fseek(converted, bananas.offset, SEEK_SET);
-
-	for (int i = 0; i < bananas.number; ++i) {
-		// Position
-		writeInt(converted, readInt(original));
-		writeInt(converted, readInt(original));
-		writeInt(converted, readInt(original));
-
-		// Banana Type
-		writeInt(converted, readInt(original));
-	}
-	
-	// Mystery One
-
-	fseek(original, mysteryOne.offset, SEEK_SET);
-	fseek(converted, mysteryOne.offset, SEEK_SET);
-
-	for (int i = 0; i < mysteryOne.number; ++i) {
-		// Marker?
-		writeInt(converted, readInt(original));
-
-		// 5 floats?
-		writeInt(converted, readInt(original));
-		writeInt(converted, readInt(original));
-		writeInt(converted, readInt(original));
-		writeInt(converted, readInt(original));
-		writeInt(converted, readInt(original));
-
-		// 2 4-byte zeros
-		writeInt(converted, readInt(original));
-		writeInt(converted, readInt(original));
-	}
-	
-	// Background Models
-
-	fseek(original, backgroundModels.offset, SEEK_SET);
-	fseek(converted, backgroundModels.offset, SEEK_SET);
-
-	for (int i = 0; i < backgroundModels.number; ++i) {
-		// Background model marker
-		writeInt(converted, readInt(original));
-
-		// Model Name offset
-		uint32_t modelNameOffset = readInt(original);
-		writeInt(converted, modelNameOffset);
-		copyAsciiAligned(original, converted, modelNameOffset);
-
-		// Padding
-		writeInt(converted, readInt(original));
-
-		// Position
-		writeInt(converted, readInt(original));
-		writeInt(converted, readInt(original));
-		writeInt(converted, readInt(original));
-
-		// Rotation
-		writeShort(converted, readShort(original));
-		writeShort(converted, readShort(original));
-		writeShort(converted, readShort(original));
-		// Padding
-		writeShort(converted, readShort(original));
-
-		// Scale
-		writeInt(converted, readInt(original));
-		writeInt(converted, readInt(original));
-		writeInt(converted, readInt(original));
-
-
-		// BG Animation 1?
-		uint32_t animation1Offset = readInt(original);
-		writeInt(converted, animation1Offset);
-
-		// BG Animation 2?
-		uint32_t animation2Offset = readInt(original);
-		writeInt(converted, animation2Offset);
-
-		// Mystery 4
-		uint32_t mysteryFour = readInt(original);
-		writeInt(converted, mysteryFour);
-
-		uint32_t savePos = ftell(original);
-
-		if (animation1Offset != 0) {
-			// Copy BG animation 1
-			fseek(original, animation1Offset, SEEK_SET);
-			fseek(converted, animation1Offset, SEEK_SET);
-
-			// Zero
-			writeInt(converted, readInt(original));
-
-			// Always 0x41000000 (ascii A)?
-			writeInt(converted, readInt(original));
-
-			// Zero/Unknown (0x18)
-			for (int j = 0; j < 0x18 / 4; ++j) {
-				writeInt(converted, readInt(original));
-			}
-
-			// Animation
-			copyAnimation(original, converted, ftell(original), readInt, writeInt);
-
-			// Seek past animation
-			fseek(original, 24, SEEK_CUR);
-			fseek(converted, 24, SEEK_CUR);
-
-			// Zero/Unknown (0x16)
-			for (int j = 0; j < 0x16 / 4; ++j) {
-				writeInt(converted, readInt(original));
-			}
-		}
-
-		if (animation2Offset != 0) {
-			// Copy BG animation 2
-			fseek(original, animation2Offset, SEEK_SET);
-			fseek(converted, animation2Offset, SEEK_SET);
-
-			// Zero
-			writeInt(converted, readInt(original));
-
-			// Always 0x41000000 (ascii A)?
-			writeInt(converted, readInt(original));
-
-			// Zero/Unknown (0x18)
-			for (int j = 0; j < 0x18 / 4; ++j) {
-				writeInt(converted, readInt(original));
-			}
-
-			// Animation
-			copyAnimation(original, converted, ftell(original), readInt, writeInt);
-
-			// Seek past animation
-			fseek(original, 24, SEEK_CUR);
-			fseek(converted, 24, SEEK_CUR);
-
-			// Zero/Unknown (0x16)
-			for (int j = 0; j < 0x16 / 4; ++j) {
-				writeInt(converted, readInt(original));
-			}
-		}
-
-		if (mysteryFour != 0) {
-			// Copy Mystery Four
-			fseek(original, mysteryFour, SEEK_SET);
-			fseek(converted, mysteryFour, SEEK_SET);
-
-			// Zero/Unknown (0x10)
-			for (int j = 0; j < 0x10 / 4; ++j) {
-				writeInt(converted, readInt(original));
-			}
-
-			uint32_t oddOffset = readInt(original);
-			writeInt(converted, oddOffset);
-
-			// Zero/Unknown (0x1C)
-			for (int j = 0; j < 0x1C / 4; ++j) {
-				writeInt(converted, readInt(original));
-			}
-
-			fseek(original, oddOffset, SEEK_SET);
-			fseek(converted, oddOffset, SEEK_SET);
-
-			// Two floats
-			writeInt(converted, readInt(original));
-			writeInt(converted, readInt(original));
-		}
-
-		fseek(original, savePos, SEEK_SET);
-		fseek(converted, savePos, SEEK_SET);
-	}
-	
-	// Level Model As
-	
-	fseek(original, levelModelA.offset, SEEK_SET);
-	fseek(converted, levelModelA.offset, SEEK_SET);
-
-	for (int i = 0; i < levelModelA.number; ++i) {
-		// Level Model A marker
-		writeInt(converted, readInt(original));
-		writeInt(converted, readInt(original));
-
-		// Level Model offset
-		uint32_t levelModelOffset = readInt(original);
-		writeInt(converted, levelModelOffset);
-
-		uint32_t savePos = ftell(original);
-
-		// Level Model
-		
-		fseek(original, levelModelOffset - 8, SEEK_SET);
-		fseek(converted, levelModelOffset - 8, SEEK_SET);
-
-		// Header (All zero) (0xC)
-		for (int j = 0; j < 0xC / 4; ++j) {
-			writeInt(converted, readInt(original));
-		}
-
-		uint32_t modelNameOffset = readInt(original);
-		writeInt(converted, modelNameOffset);
-		copyAsciiAligned(original, converted, modelNameOffset);
-
-		fseek(original, savePos, SEEK_SET);
-		fseek(converted, savePos, SEEK_SET);
-
-
-	}
-	
-	// Level Model Bs
-
-	fseek(original, levelModelB.offset, SEEK_SET);
-	fseek(converted, levelModelB.offset, SEEK_SET);
-
-	for (int i = 0; i < levelModelB.number; ++i) {
-		// Level Model offset
-		uint32_t levelModelOffset = readInt(original);
-		writeInt(converted, levelModelOffset);
-
-		uint32_t savePos = ftell(original);
-
-		// Level Model
-
-		fseek(original, levelModelOffset, SEEK_SET);
-		fseek(converted, levelModelOffset , SEEK_SET);
-
-		// Level Model B Marker
-		writeInt(converted, readInt(original));
-		writeInt(converted, readInt(original));
-
-		uint32_t levelModelAOffset = readInt(original);
-		writeInt(converted, levelModelAOffset);
-		//copyAsciiALigned(original, converted, modelNameOffset);
-
-		fseek(original, savePos, SEEK_SET);
-		fseek(converted, savePos, SEEK_SET);
-
-
-	}
-	
-	// Collision Fields
-
-	fseek(original, collisionFields.offset, SEEK_SET);
-	fseek(converted, collisionFields.offset, SEEK_SET);
-
-	for (int i = 0; i < collisionFields.number; ++i) {
-		//if (i == 1) { return; }
-		// Center Animation Position
-		writeInt(converted, readInt(original));
-		writeInt(converted, readInt(original));
-		writeInt(converted, readInt(original));
-
-		// Initial Animation Rotation
-		writeShort(converted, readShort(original));
-		writeShort(converted, readShort(original));
-		writeShort(converted, readShort(original));
-		// Padding
-		writeShort(converted, readShort(original));
-
-		// Offset to animation data
-		uint32_t animationOffset = readInt(original);
-		writeInt(converted, animationOffset);
-		if (animationOffset != 0) {
-			// Write animation data
-			copyAnimation(original, converted, animationOffset, readInt, writeInt);
-		}
-
-		// Dead Zone (May include model name reference) (0x10)
-		for (int j = 0; j < 0xC / 4; ++j) {
-			writeInt(converted, readInt(original));
-		}
-
-		// Triangle Collision Data
-		uint32_t triangleDataOffset = readInt(original);
-		writeInt(converted, triangleDataOffset);
-
-		// Collision Grid Pointers
-		uint32_t collisionGridPointerOffsets = readInt(original);
-		writeInt(converted, collisionGridPointerOffsets);
-
-		// Collision Grid X/Z Start value
-		writeInt(converted, readInt(original));
-		writeInt(converted, readInt(original));
-
-		// Collision Grid X/Z Step value
-		writeInt(converted, readInt(original));
-		writeInt(converted, readInt(original));
-
-		// 0x10 0x10
-		writeInt(converted, readInt(original));
-		writeInt(converted, readInt(original));
-
-		// Copy of header for what gets animated with the collision field (0x458)
-
-		// Number of Goals
-		writeInt(converted, readInt(original));
-
-		// Offset to Goals
-		writeInt(converted, readInt(original));
-
-		// Number of Bumpers
-		writeInt(converted, readInt(original));
-
-		// Offset to Bumpers
-		writeInt(converted, readInt(original));
-
-		// Number of Jamabars
-		writeInt(converted, readInt(original));
-
-		// Offset to Jamabars
-		writeInt(converted, readInt(original));
-
-		// Number of Bananas
-		writeInt(converted, readInt(original));
-		
-		// Offset to Bananas
-		writeInt(converted, readInt(original));
-
-		// Unknown/Zero (0x30)
-		for (int j = 0; j < 0x30 / 4; ++j) {
-			writeInt(converted, readInt(original));
-		}
-
-		// Number of Level Models
-		writeInt(converted, readInt(original));
-
-		// Offset to Level Models
-		writeInt(converted, readInt(original));
-
-		// Mystery Six
-		uint32_t mystery6Offset = 0;// readInt(original);
-		//writeInt(converted, mystery6Offset);
-
-		// Next part of header copy (0x18)
-		for (int j = 0; j < 0x18 / 4; ++j) {
-			writeInt(converted, readInt(original));
-		}
-
-		// Mystery Five
-		uint32_t myserty5Offset = readInt(original);
-		writeInt(converted, myserty5Offset);
-
-		// Rest of header copy (0x3E4)
-		for (int j = 0; j < 0x3E4 / 4; ++j) {
-			writeInt(converted, readInt(original));
-		}
-
-		uint32_t savePos = ftell(original);
-
-		// Copy Mystery 5
-		if (myserty5Offset != 0) {
-			fseek(original, myserty5Offset, SEEK_SET);
-			fseek(converted, myserty5Offset, SEEK_SET);
-
-			// Zero/Unknown
-			writeInt(converted, readInt(original));
-
-			// 3 Floats
-			writeInt(converted, readInt(original));
-			writeInt(converted, readInt(original));
-			writeInt(converted, readInt(original));
-		}
-
-		if (mystery6Offset != 0) {
-			fseek(original, mystery6Offset, SEEK_SET);
-			fseek(converted, mystery6Offset, SEEK_SET);
-			// 4 Floats
-			writeInt(converted, readInt(original));
-			writeInt(converted, readInt(original));
-			writeInt(converted, readInt(original));
-			writeInt(converted, readInt(original));
-
-		}
-		
-		// Handle the collision grid before the collision triangles to find which offset they end at
-		fseek(original, collisionGridPointerOffsets, SEEK_SET);
-		fseek(converted, collisionGridPointerOffsets, SEEK_SET);
-
-		uint32_t triangleCollisionEnd = readInt(original);
-		fseek(original, -4, SEEK_CUR);
-		
-		do {
-			uint32_t collisionGridOffset = readInt(original);
-
-			// A collision Grid offset won't be this big, but an ascii value will be which is next in the file order
-			if (collisionGridOffset >= 0x01000000) {
-				break;
-			}
-			if (collisionGridOffset <= 0x89C) {
-				break;
-			}
-			writeInt(converted, collisionGridOffset);
-
-			// 0 == No triangles here
-			if (collisionGridOffset != 0) {
-				uint32_t savePos2 = ftell(original);
-
-				// Go to the collision grid
-				fseek(original, collisionGridOffset, SEEK_SET);
-				fseek(converted, collisionGridOffset, SEEK_SET);
-
-				// Copy all the collision grid numbers for this particular grid
-				uint16_t collisionTriangleNumber;
-				do {
-					collisionTriangleNumber = readShort(original);
-					writeShort(converted, collisionTriangleNumber);
-				} while (collisionTriangleNumber != 0xFFFF); // End of grid marker
-
-				fseek(original, savePos2, SEEK_SET);
-				fseek(converted, savePos2, SEEK_SET);
-			}
-
-		} while (1);
-		
-		// Handle Collision Triangles
-		fseek(original, triangleDataOffset, SEEK_SET);
-		fseek(converted, triangleDataOffset, SEEK_SET);
-
-		while ((uint32_t) ftell(original) < triangleCollisionEnd) {
-			// X1 Position
-			writeInt(converted, readInt(original));
-			writeInt(converted, readInt(original));
-			writeInt(converted, readInt(original));
-
-			// Normal (X, Y, Z)
-			writeInt(converted, readInt(original));
-			writeInt(converted, readInt(original));
-			writeInt(converted, readInt(original));
-
-			// Rotation from XY plane (X, Y, Z)
-			writeShort(converted, readShort(original));
-			writeShort(converted, readShort(original));
-			writeShort(converted, readShort(original));
-			// Padding
-			writeShort(converted, readShort(original));
-
-			// Distance to other vertecies (DX2X1, DY2Y1, DX3X1, DY3Y1)
-			writeInt(converted, readInt(original));
-			writeInt(converted, readInt(original));
-			writeInt(converted, readInt(original));
-			writeInt(converted, readInt(original));
-
-			// Tangent (X, Y)
-			writeInt(converted, readInt(original));
-			writeInt(converted, readInt(original));
-
-			// Bitangent (X, Y)
-			writeInt(converted, readInt(original));
-			writeInt(converted, readInt(original));
-		}
-
-		fseek(original, savePos, SEEK_SET);
-		fseek(converted, savePos, SEEK_SET);
-	}
-	
-	/// Time for some mysteries...
-
-	// stageAnimations
-	if (stageAnimations.offset != 0) {
-		copyAnimation(original, converted, stageAnimations.offset, readInt, writeInt);
-	}
-
-	// Mystery Two
-	if (mysteryTwo.offset != 0) {
-		fseek(original, mysteryTwo.offset, SEEK_SET);
-		fseek(converted, mysteryTwo.offset, SEEK_SET);
-		// Dead Zone (Endianess doesn't matter here) (0x24)
-		for (int i = 0; i < 0x24 / 0x4; ++i) {
-			writeNormalInt(converted, readInt(original));
-		}
-	}
-
-	// Mystery Three
-	if (mysteryThree.offset != 0) {
-		fseek(original, mysteryThree.offset, SEEK_SET);
-		fseek(converted, mysteryThree.offset, SEEK_SET);
-		// Dead Zone (0xC)
-		for (int i = 0; i < 0xC / 0x4; ++i) {
-			writeInt(converted, readInt(original));
-		}
-
-		// Zero/Padding
-		writeShort(converted, readShort(original));
-
-		// Some marker?
-		writeShort(converted, readShort(original));
-
-		// Dead Zone (0x14)
-		for (int i = 0; i < 0x14 / 0x4; ++i) {
-			writeInt(converted, readInt(original));
-		}
-	}
 
 	fclose(original);
 	fclose(converted);
