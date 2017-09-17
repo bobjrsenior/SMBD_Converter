@@ -23,7 +23,7 @@ typedef struct {
 	int offset;
 }Item;
 
-void parseRawLZ(char* filename) {
+void parseRawLZ(const char* filename) {
 	int game = 0;
 
 	// Using function pointers to read/write values keeps things game agnostic (can convert from SMBD to SMB2 or SMB2 to SMBD)

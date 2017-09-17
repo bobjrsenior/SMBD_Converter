@@ -6,6 +6,7 @@
 #include "RawLZConverter.h"
 #include "TPLConverter.h"
 #include "GMAConverter.h"
+#include "FunctionsAndDefines.h"
 
 typedef struct {
 	uint32_t encoding;
@@ -38,6 +39,8 @@ typedef struct {
 
 //void parseGMA(char* filename);
 
+int decompress(const char* filename);
+
 int main(int argc, char*argv[]) {
 	if (argc == 1) {
 		return 0;
@@ -55,9 +58,139 @@ int main(int argc, char*argv[]) {
 	else if (fileType == "raw") {
 		parseRawLZ(argv[1]);
 	}
+	else if (fileType == ".lz") {
+		if (decompress(filenameParam.c_str()) == 0) {
+			filenameParam += ".raw" + '\0';
+			parseRawLZ(filenameParam.c_str());
+		}
+	}
 
 	return 0;
 	
+}
+
+int decompress(const char* filename) {
+	// Try to open it
+	FILE* lz = fopen(filename, "rb");
+	if (lz == NULL) {
+		printf("ERROR: File not found: %s\n", filename);
+		return -1;
+	}
+	printf("Decompressing %s\n", filename);
+
+	// Create a temp file for the unfixed lz (SMB lz has a slightly different header than FF7 LZS)
+	FILE* normal = tmpfile();
+
+	// Unfix the header (Turn it back into normal FF7 LZSS)
+	uint32_t csize = readLittleInt(lz) - 8;
+	// Filesize of the uncompressed data
+	int dataSize = readLittleInt(lz);
+	putc(csize & 0xFF, normal);
+	putc((csize >> 8) & 0xFF, normal);
+	putc((csize >> 16) & 0xFF, normal);
+	putc((csize >> 24) & 0xFF, normal);
+	for (int j = 0; j < (int)(csize); j++) {
+		char c = (char)getc(lz);
+		putc(c, normal);
+	}
+	fclose(lz);
+	fflush(normal);
+	fseek(normal, 0, SEEK_SET);
+
+	// Make the output file name
+	char outfileName[512];
+	sscanf(filename, "%507s", outfileName);
+	{
+		int nameLength = (int)strlen(outfileName);
+		outfileName[nameLength++] = '.';
+		outfileName[nameLength++] = 'r';
+		outfileName[nameLength++] = 'a';
+		outfileName[nameLength++] = 'w';
+		outfileName[nameLength++] = '\0';
+	}
+
+	// The size the the lzss data + 4 bytes for the header
+	uint32_t filesize = readLittleInt(normal) + 4;
+
+	char * memBlock = (char*)malloc(sizeof(char) * (dataSize));
+	int memPosition = 0;
+
+	// Loop until we reach the end of the data or end of the file
+	while ((unsigned)ftell(normal) < filesize && !feof(normal)) {
+
+		// Read the first control block
+		// Read right to left, each bit specifies how the the next 8 spots of data will be
+		// 0 means write the byte directly to the output
+		// 1 represents there will be reference (2 byte)
+		uint8_t block = (uint8_t)getc(normal);
+
+		// Go through every bit in the control block
+		for (int j = 0; j < 8 && (unsigned)ftell(normal) < filesize && !feof(normal); ++j) {
+			// Literal byte copy
+			if (block & 0x01) {
+				memBlock[memPosition] = (char)getc(normal);
+				++memPosition;
+			}// Reference
+			else {
+				uint16_t reference = readBigShort(normal);
+
+				// Length is the last four bits + 3
+				// Any less than a lengh of 3 i pointess since a reference takes up 3 bytes
+				// Length is the last nibble (last 4 bits) of the 2 reference bytes
+				int length = (reference & 0x000F) + 3;
+
+				// Offset if is all 8 bits in the first reference byte and the first nibble (4 bits) in the second reference byte
+				// The nibble from the second reference byte comes before the first reference byte
+				// EX: reference bytes = 0x12 0x34
+				//     offset = 0x312
+				int offset = ((reference & 0xFF00) >> 8) | ((reference & 0x00F0) << 4);
+
+				// Convert the offset to how many bytes away from the end of the buffer to start reading from
+				int backSet = (memPosition - 18 - offset) & 0xFFF;
+
+				// Calculate the actual location in the file
+				int readLocation = memPosition - backSet;
+
+				// Handle case where the offset is past the beginning of the file
+				if (readLocation < 0) {
+					// Determine how many zeros to write
+					int amt = -readLocation;
+					if (length <= amt) {
+						amt = length;
+					}
+					// Write the zeros
+					memset(&memBlock[memPosition], 0, sizeof(char) * amt);
+					// Ajuest positions and number of bytes left to copy
+					length -= amt;
+					readLocation += amt;
+					memPosition += amt;
+				}
+
+				// Copy the rest of the reference bytes
+				while (length-- > 0) {
+					memBlock[memPosition++] = memBlock[readLocation++];
+				}
+
+
+			}
+			// Go to the next reference bit in the block
+			block = block >> 1;
+		}
+
+
+	}
+
+	// Open the output file and copy the data into it
+	FILE* outfile = fopen(outfileName, "wb");
+	fwrite(memBlock, sizeof(char), dataSize, outfile);
+
+	// Close files and free memory
+	free(memBlock);
+	fclose(outfile);
+	fclose(normal);
+
+	printf("Finished Decompressing %s\n", filename);
+	return 0;
 }
 
 /*void parseTPL(char* filename) {

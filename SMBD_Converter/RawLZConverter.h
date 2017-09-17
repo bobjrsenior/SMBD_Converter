@@ -3,4 +3,4 @@
 #include <string>
 
 
-void parseRawLZ(char* filename);
+void parseRawLZ(const char* filename);
