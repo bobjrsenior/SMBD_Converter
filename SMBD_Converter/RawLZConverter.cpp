@@ -4,6 +4,9 @@ inline void copyAsciiAligned(FILE *input, FILE *output, uint32_t offset) {
 	uint32_t savePos = ftell(input);
 	fseek(input, offset, SEEK_SET);
 	fseek(output, offset, SEEK_SET);
+
+	// Copy characters until at the end of file
+	// or at the end of the ascii and 4 byte aligned
 	int c;
 	do {
 		c = getc(input);
@@ -12,11 +15,16 @@ inline void copyAsciiAligned(FILE *input, FILE *output, uint32_t offset) {
 		}
 		putc(c, output);
 	} while (!feof(input) && !(c == 0 && ftell(input) % 4 == 0));
+
 	fseek(input, savePos, SEEK_SET);
 	fseek(output, savePos, SEEK_SET);
 }
 
-inline void copyAnimation(FILE *input, FILE *output, uint32_t offset, uint32_t(*readInt)(FILE*), void(*writeInt)(FILE*, uint32_t));
+inline void copyAnimation(FILE *input, FILE *output, uint32_t offset, uint32_t(*readInt)(FILE*), void(*writeInt)(FILE*, uint32_t), int numKeys);
+
+inline void copyBackgroundAnimation(FILE *input, FILE *output, uint32_t offset, uint32_t(*readInt)(FILE*), void(*writeInt)(FILE*, uint32_t), int numKeys);
+
+inline void copyEffects(FILE *input, FILE *output, uint32_t offset, uint32_t(*readInt)(FILE*), void(*writeInt)(FILE*, uint32_t));
 
 typedef struct {
 	int number;
@@ -461,12 +469,12 @@ void parseRawLZ(const char* filename) {
 	fseek(converted, fogAnimation.offset, SEEK_SET);
 
 	// Animation (0x0, length = 0x40)
-	copyAnimation(original, converted, fogAnimation.offset, readInt, writeInt);
+	copyAnimation(original, converted, fogAnimation.offset, readInt, writeInt, 5);
 #pragma endregion Fog_Animation
 
 #pragma region Mystery_Three
-	fseek(original, fogAnimation.offset, SEEK_SET);
-	fseek(converted, fogAnimation.offset, SEEK_SET);
+	fseek(original, mysteryThree.offset, SEEK_SET);
+	fseek(converted, mysteryThree.offset, SEEK_SET);
 
 	// Position? (0x0, length = 0xC)
 	writeInt(converted, readInt(original));
@@ -486,175 +494,212 @@ void parseRawLZ(const char* filename) {
 
 #pragma endregion Mystery_Three
 
+#pragma region Level_Model_A
+	fseek(original, levelModelA.offset, SEEK_SET);
+	fseek(converted, levelModelA.offset, SEEK_SET);
+
+	// Level Model A Symbol (0x0, length = 0x8)
+	writeInt(converted, readInt(original)); // 0
+	writeInt(converted, readInt(original)); // 1
+
+	
+	{
+		// Offset to Level Model A (Actual) (0x0, length = 0x4)
+		uint32_t levelModelAOffset = readInt(original);
+		writeInt(converted, levelModelAOffset);
+
+		// Seek to the actual Level Model A
+		fseek(original, levelModelAOffset, SEEK_SET);
+		fseek(converted, levelModelAOffset, SEEK_SET);
+
+		// Null (0x0, length = 4)
+		writeInt(converted, readInt(original));
+		
+		// Model Name offset (0x4, length = 4)
+		uint32_t modelNameOffset = readInt(original);
+		writeInt(converted, modelNameOffset);
+
+		// Null/Padding (0x8, length = 8)
+		writeInt(converted, readInt(original));
+		writeInt(converted, readInt(original));
+
+		// Copy model name
+		copyAsciiAligned(original, converted, modelNameOffset);
+	}
+
+#pragma endregion Level_Model_A
+
+#pragma region Level_Model_B
+	fseek(original, levelModelB.offset, SEEK_SET);
+	fseek(converted, levelModelB.offset, SEEK_SET);
+
+	// Offset to Level Model A (0x0, length = 0x4)
+	writeInt(converted, readInt(original)); // Not saved because the Level Model A readion covers it
+
+#pragma endregion Level_Model_B
+
+#pragma region Reflective_Level_Model
+	fseek(original, reflectiveModels.offset, SEEK_SET);
+	fseek(converted, reflectiveModels.offset, SEEK_SET);
+
+	{
+		// Model Name offset (0x0, length = 0x4)
+		uint32_t modelNameOffset = readInt(original);
+		writeInt(converted, modelNameOffset);
+
+		// Null/Padding (0x4, length = 0x8)
+		writeInt(converted, readInt(original));
+		writeInt(converted, readInt(original));
+
+		// Copy model name
+		copyAsciiAligned(original, converted, modelNameOffset);
+	}
+#pragma endregion Reflective_Level_Model
+
+#pragma region Background_Model
+	fseek(original, backgroundModels.offset, SEEK_SET);
+	fseek(converted, backgroundModels.offset, SEEK_SET);
+
+	// Background Model Symbol (0x0, length = 0x4)
+	writeInt(converted, readInt(original));
+
+	{
+		// Model Name Offset (0x4, length = 0x4)
+		uint32_t modelNameOffset = readInt(original);
+		writeInt(converted, modelNameOffset);
+
+		// Null/Padding (0x8, length = 0x4)
+		writeInt(converted, readInt(original));
+
+		// Position (0xC, length = 0xC)
+		writeInt(converted, readInt(original)); // X
+		writeInt(converted, readInt(original)); // Y
+		writeInt(converted, readInt(original)); // Z
+
+		// Rotation (0x18, length = 0x8)
+		writeShort(converted, readShort(original)); // X
+		writeShort(converted, readShort(original)); // Y
+		writeShort(converted, readShort(original)); // Z
+		writeShort(converted, readShort(original)); // Padding
+
+		// Scale (0x20, length = 0xC)
+		writeInt(converted, readInt(original)); // X
+		writeInt(converted, readInt(original)); // Y
+		writeInt(converted, readInt(original)); // Z
+
+		// Animation One (0x2C, length = 0x4)
+		uint32_t backgroundAnimationOffsetOne = readInt(original);
+		writeInt(converted, backgroundAnimationOffsetOne);
+
+		// Animation Two (0x30, length = 0x4)
+		uint32_t backgroundAnimationOffsetTwo = readInt(original);
+		writeInt(converted, backgroundAnimationOffsetTwo);
+
+		// Effects (0x34, length = 0x4)
+		uint32_t effectsOffset = readInt(original);
+		writeInt(converted, effectsOffset);
+
+		// Copy model name
+		copyAsciiAligned(original, converted, modelNameOffset);
+
+		// Copy animation one
+		copyBackgroundAnimation(original, converted, backgroundAnimationOffsetOne, readInt, writeInt, 6); // TODO
+
+		// Copy animation two
+		copyBackgroundAnimation(original, converted, backgroundAnimationOffsetTwo, readInt, writeInt, 6); // TODO
+
+		// Copy effects
+		copyEffects(original, converted, effectsOffset, readInt, writeInt);
+	}
+#pragma endregion Background_Model
+
 
 	fclose(original);
 	fclose(converted);
 }
 
-inline void copyAnimation(FILE *input, FILE *output, uint32_t offset, uint32_t(*readInt)(FILE*), void(*writeInt)(FILE*, uint32_t)) {
-	// TODO
+inline void copyAnimation(FILE *input, FILE *output, uint32_t offset, uint32_t(*readInt)(FILE*), void(*writeInt)(FILE*, uint32_t), int numKeys) {
 	uint32_t savePos = ftell(input);
+
+	// Sanity Check (or moreso a sanity warning...)
+	if (numKeys > 8) {
+		printf("Warning: %d animation keys is more than the expected allowed number\n", numKeys);
+	}
 
 	fseek(input, offset, SEEK_SET);
 	fseek(output, offset, SEEK_SET);
 
-	
-	Item rotX;
-	Item rotY;
-	Item rotZ;
-	Item transX;
-	Item transY;
-	Item transZ;
+	Item *keyList = (Item *)malloc(sizeof(Item) * numKeys);
 
+	// Gather keys (0x0, length = 0x8 * numKeys
+	for (int i = 0; i < numKeys; i++) {
+		keyList[i].number = readInt(input);
+		keyList[i].offset = readInt(input);
+		writeInt(output, keyList[i].number);
+		writeInt(output, keyList[i].offset);
+	}
 
-	// Rotation Headers (X, Y, Z)
-	rotX.number = readInt(input);
-	rotX.offset = readInt(input);
-	writeInt(output, rotX.number);
-	writeInt(output, rotX.offset);
-
-	rotY.number = readInt(input);
-	rotY.offset = readInt(input);
-	writeInt(output, rotY.number);
-	writeInt(output, rotY.offset);
-
-	rotZ.number = readInt(input);
-	rotZ.offset = readInt(input);
-	writeInt(output, rotZ.number);
-	writeInt(output, rotZ.offset);
-
-	// Translation Headers (X, Y, Z)
-	transX.number = readInt(input);
-	transX.offset = readInt(input);
-	writeInt(output, transX.number);
-	writeInt(output, transX.offset);
-
-	transY.number = readInt(input);
-	transY.offset = readInt(input);
-	writeInt(output, transY.number);
-	writeInt(output, transY.offset);
-
-	transZ.number = readInt(input);
-	transZ.offset = readInt(input);
-	writeInt(output, transZ.number);
-	writeInt(output, transZ.offset);
-
-	// Copy the animation frames
-
-	// Rotation X
-	fseek(input, rotX.offset, SEEK_SET);
-	fseek(output, rotX.offset, SEEK_SET);
-
-	for (int i = 0; i < rotX.number; ++i) {
-		// Animation Marker
-		writeInt(output, readInt(input));
-
-		// Time
-		writeInt(output, readInt(input));
-
-		// Displacement
-		writeInt(output, readInt(input));
-
-		// Dead Zone (0x8)
-		writeInt(output, readInt(input));
+	// Unknown/Null (0x8 * numKeys, length = 0x40 - (0x8 * numKeys)
+	for (int i = numKeys * 0x8; i < 0x40; i += 4) {
 		writeInt(output, readInt(input));
 	}
 
-	// Rotation Y
-	fseek(input, rotY.offset, SEEK_SET);
-	fseek(output, rotY.offset, SEEK_SET);
+	for (int i = 0; i < numKeys; i++) {
+		if (keyList[i].number > 0 && keyList[i].offset != 0) {
+			fseek(input, keyList[i].offset, SEEK_SET);
+			fseek(output, keyList[i].offset, SEEK_SET);
 
-	for (int i = 0; i < rotY.number; ++i) {
-		// Animation Marker
-		writeInt(output, readInt(input));
+			// Easing (0x0, length = 0x4)
+			writeInt(output, readInt(input));
 
-		// Time
-		writeInt(output, readInt(input));
+			// Time (0x4, length = 0x4)
+			writeInt(output, readInt(input));
 
-		// Displacement
-		writeInt(output, readInt(input));
+			// Value (0x8, length = 0x4)
+			writeInt(output, readInt(input));
 
-		// Dead Zone (0x8)
-		writeInt(output, readInt(input));
-		writeInt(output, readInt(input));
-	}
-
-	// Rotation Z
-	fseek(input, rotZ.offset, SEEK_SET);
-	fseek(output, rotZ.offset, SEEK_SET);
-
-	for (int i = 0; i < rotZ.number; ++i) {
-		// Animation Marker
-		writeInt(output, readInt(input));
-
-		// Time
-		writeInt(output, readInt(input));
-
-		// Displacement
-		writeInt(output, readInt(input));
-
-		// Dead Zone (0x8)
-		writeInt(output, readInt(input));
-		writeInt(output, readInt(input));
-	}
-
-	// Translation X
-	fseek(input, transX.offset, SEEK_SET);
-	fseek(output, transX.offset, SEEK_SET);
-
-	for (int i = 0; i < transX.number; ++i) {
-		// Animation Marker
-		writeInt(output, readInt(input));
-
-		// Time
-		writeInt(output, readInt(input));
-
-		// Displacement
-		writeInt(output, readInt(input));
-
-		// Dead Zone (0x8)
-		writeInt(output, readInt(input));
-		writeInt(output, readInt(input));
-	}
-
-	// Translation Y
-	fseek(input, transY.offset, SEEK_SET);
-	fseek(output, transY.offset, SEEK_SET);
-
-	for (int i = 0; i < transY.number; ++i) {
-		// Animation Marker
-		writeInt(output, readInt(input));
-
-		// Time
-		writeInt(output, readInt(input));
-
-		// Displacement
-		writeInt(output, readInt(input));
-
-		// Dead Zone (0x8)
-		writeInt(output, readInt(input));
-		writeInt(output, readInt(input));
-	}
-
-	// Translation Z
-	fseek(input, transZ.offset, SEEK_SET);
-	fseek(output, transZ.offset, SEEK_SET);
-
-	for (int i = 0; i < transZ.number; ++i) {
-		// Animation Marker
-		writeInt(output, readInt(input));
-
-		// Time
-		writeInt(output, readInt(input));
-
-		// Displacement
-		writeInt(output, readInt(input));
-
-		// Dead Zone (0x8)
-		writeInt(output, readInt(input));
-		writeInt(output, readInt(input));
+			// Unknown/Null (0xC, length = 0x8)
+			for (int j = 0; j < 0x8; j += 4) {
+				writeInt(output, readInt(input));
+			}
+		}
 	}
 	
+	fseek(input, savePos, SEEK_SET);
+	fseek(output, savePos, SEEK_SET);
+	free(keyList);
+}
+
+inline void copyBackgroundAnimation(FILE *input, FILE *output, uint32_t offset, uint32_t(*readInt)(FILE*), void(*writeInt)(FILE*, uint32_t), int numKeys) {
+	uint32_t savePos = ftell(input);
+	fseek(input, offset, SEEK_SET);
+	fseek(output, offset, SEEK_SET);
+
+	// Unknown/Null (0x0, length = 0x4)
+	writeInt(output, readInt(input));
+
+	// Animation Loop point (0x4, length = 0x4)
+	writeInt(output, readInt(input));
+
+	// Unknown/Null (0x8, length = 0xC)
+	for (int i = 0; i < 0xC; i += 4) {
+		writeInt(output, readInt(input));
+	}
+
+	// Animation (0x14, length = 0x40)
+	copyAnimation(input, output, ftell(input), readInt, writeInt, numKeys);
+
+	fseek(input, savePos, SEEK_SET);
+	fseek(output, savePos, SEEK_SET);
+}
+
+inline void copyEffects(FILE *input, FILE *output, uint32_t offset, uint32_t(*readInt)(FILE*), void(*writeInt)(FILE*, uint32_t)) {
+	uint32_t savePos = ftell(input);
+	fseek(input, offset, SEEK_SET);
+	fseek(output, offset, SEEK_SET);
+
+	// TODO
+
 	fseek(input, savePos, SEEK_SET);
 	fseek(output, savePos, SEEK_SET);
 }
