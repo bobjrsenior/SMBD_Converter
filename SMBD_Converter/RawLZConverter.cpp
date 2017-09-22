@@ -1,6 +1,6 @@
 #include "RawLZConverter.h"
-
-inline void copyAsciiAligned(FILE *input, FILE *output, uint32_t offset) {
+// TODO Read put Item readings into separate methods
+static void copyAsciiAligned(FILE *input, FILE *output, uint32_t offset) {
 	uint32_t savePos = ftell(input);
 	fseek(input, offset, SEEK_SET);
 	fseek(output, offset, SEEK_SET);
@@ -20,28 +20,32 @@ inline void copyAsciiAligned(FILE *input, FILE *output, uint32_t offset) {
 	fseek(output, savePos, SEEK_SET);
 }
 
-inline void copyAnimation(FILE *input, FILE *output, uint32_t offset, uint32_t(*readInt)(FILE*), void(*writeInt)(FILE*, uint32_t), int numKeys);
-
-inline void copyBackgroundAnimation(FILE *input, FILE *output, uint32_t offset, uint32_t(*readInt)(FILE*), void(*writeInt)(FILE*, uint32_t), int numKeys);
-
-inline void copyEffects(FILE *input, FILE *output, uint32_t offset, uint32_t(*readInt)(FILE*), void(*writeInt)(FILE*, uint32_t));
-
 typedef struct {
 	int number;
 	int offset;
 }Item;
 
+static void copyAnimation(FILE *input, FILE *output, uint32_t offset, int numKeys);
+
+static void copyBackgroundAnimation(FILE *input, FILE *output, uint32_t offset, int numKeys);
+
+static void copyEffects(FILE *input, FILE *output, uint32_t offset);
+
+static Item readItem(FILE *input, FILE *output);
+
+// Using function pointers to read/write values keeps things game agnostic (can convert from SMBD to SMB2 or SMB2 to SMBD)
+static uint32_t(*readInt)(FILE*);
+static void(*writeInt)(FILE*, uint32_t);
+static void(*writeNormalInt)(FILE*, uint32_t);
+
+static uint16_t(*readShort)(FILE*);
+static void(*writeShort)(FILE*, uint16_t);
+static void(*writeNormalShort)(FILE*, uint16_t);
+
+
 void parseRawLZ(const char* filename) {
 	int game = 0;
 
-	// Using function pointers to read/write values keeps things game agnostic (can convert from SMBD to SMB2 or SMB2 to SMBD)
-	uint32_t(*readInt)(FILE*);
-	void(*writeInt)(FILE*, uint32_t);
-	void(*writeNormalInt)(FILE*, uint32_t);
-
-	uint16_t(*readShort)(FILE*);
-	void(*writeShort)(FILE*, uint16_t);
-	void(*writeNormalShort)(FILE*, uint16_t);
 
 	std::string outfilename = std::string(filename);
 
@@ -121,14 +125,10 @@ void parseRawLZ(const char* filename) {
 	writeInt(converted, readInt(original));
 
 	// Collision Header (0x8, length = 0x8)
-	collisionFields.number = readInt(original);
-	collisionFields.offset = readInt(original);
-	writeInt(converted, collisionFields.number);
-	writeInt(converted, collisionFields.offset);
+	collisionFields = readItem(original, converted);
 
 	// Start positions (0x10, length = 0x4)
-	startPositions.offset = readInt(original);
-	writeInt(converted, startPositions.offset);
+	startPositions = readItem(original, converted);
 
 	// Fallout Y (0x14, length = 0x4)
 	falloutY.offset = readInt(original);
@@ -138,28 +138,16 @@ void parseRawLZ(const char* filename) {
 	startPositions.number = (falloutY.offset - startPositions.offset) / 0x14;
 
 	// Goals (0x18, length = 0x8)
-	goals.number = readInt(original);
-	goals.offset = readInt(original);
-	writeInt(converted, goals.number);
-	writeInt(converted, goals.offset);
+	goals = readItem(original, converted);
 
 	// Bumpers (0x20, length = 0x8)
-	bumpers.number = readInt(original);
-	bumpers.offset = readInt(original);
-	writeInt(converted, goals.number);
-	writeInt(converted, goals.offset);
+	bumpers = readItem(original, converted);
 
 	// Jamabars (0x28, length = 0x8)
-	jamabars.number = readInt(original);
-	jamabars.offset = readInt(original);
-	writeInt(converted, jamabars.number);
-	writeInt(converted, jamabars.offset);
+	jamabars = readItem(original, converted);
 
 	// Bananas (0x30, length = 0x8)
-	bananas.number = readInt(original);
-	bananas.offset = readInt(original);
-	writeInt(converted, bananas.number);
-	writeInt(converted, bananas.offset);
+	bananas = readItem(original, converted);
 
 	// Unknown/Null (0x38, length = 0x18)
 	for (int i = 0; i < 0x18; i += 4) {
@@ -167,16 +155,10 @@ void parseRawLZ(const char* filename) {
 	}
 
 	// Fallout Volumes (0x50, length = 0x8)
-	falloutVolumes.number = readInt(original);
-	falloutVolumes.offset = readInt(original);
-	writeInt(converted, falloutVolumes.number);
-	writeInt(converted, falloutVolumes.offset);
+	falloutVolumes = readItem(original, converted);
 
 	// Background Models (0x58, length = 0x8)
-	backgroundModels.number = readInt(original);
-	backgroundModels.offset = readInt(original);
-	writeInt(converted, backgroundModels.number);
-	writeInt(converted, backgroundModels.offset);
+	backgroundModels = readItem(original, converted);
 
 	// Unknown/Null (0x60, length = 0xC)
 	for (int i = 0; i < 0xC; i += 4) {
@@ -187,8 +169,7 @@ void parseRawLZ(const char* filename) {
 	writeInt(converted, readInt(original));
 
 	// Reflective Models (0x70, length = 0x8)
-	reflectiveModels.number = readInt(original);
-	reflectiveModels.offset = readInt(converted);
+	reflectiveModels = readItem(original, converted);
 
 	// Unknown/Null (0x78, length = 0x14)
 	for (int i = 0; i < 0x14; i += 4) {
@@ -196,16 +177,10 @@ void parseRawLZ(const char* filename) {
 	}
 
 	// Level Model A (0x8C, length = 0x8)
-	levelModelA.number = readInt(original);
-	levelModelA.offset = readInt(original);
-	writeInt(converted, levelModelA.number);
-	writeInt(converted, levelModelA.offset);
+	levelModelA = readItem(original, converted);
 
 	// Level Model B (0x94, length = 0x8)
-	levelModelB.number = readInt(original);
-	levelModelB.offset = readInt(original);
-	writeInt(converted, levelModelB.number);
-	writeInt(converted, levelModelB.offset);
+	levelModelB = readItem(original, converted);
 
 	// Unknown/Null (0x9C, length = 0x8)
 	for (int i = 0; i < 0x8; i += 4) {
@@ -213,10 +188,7 @@ void parseRawLZ(const char* filename) {
 	}
 
 	// Switches (0xA4, length = 0x8)
-	switches.number = readInt(original);
-	switches.offset = readInt(original);
-	writeInt(converted, switches.number);
-	writeInt(converted, switches.offset);
+	switches = readItem(original, converted);
 
 	// Unknown/Null (0xAC, length = 0x4)
 	for (int i = 0; i < 0x4; i += 4) {
@@ -228,10 +200,7 @@ void parseRawLZ(const char* filename) {
 	writeInt(converted, fogAnimation.offset);
 
 	// Wormholes (0xB4, length = 0x8)
-	wormholes.number = readInt(original);
-	wormholes.offset = readInt(original);
-	writeInt(converted, wormholes.number);
-	writeInt(converted, wormholes.offset);
+	wormholes = readItem(original, converted);
 
 	// Fog (0xBC, length = 0x4)
 	fog.offset = readInt(original);
@@ -366,7 +335,7 @@ void parseRawLZ(const char* filename) {
 	}
 #pragma endregion Bananas
 
-#pragma region Fallout_Volume
+#pragma region Fallout_Volumes
 	fseek(original, falloutVolumes.offset, SEEK_SET);
 	fseek(converted, falloutVolumes.offset, SEEK_SET);
 
@@ -390,9 +359,9 @@ void parseRawLZ(const char* filename) {
 
 		
 	}
-#pragma endregion Fallout_Volume
+#pragma endregion Fallout_Volumes
 
-#pragma region Switch
+#pragma region Switches
 	fseek(original, switches.offset, SEEK_SET);
 	fseek(converted, switches.offset, SEEK_SET);
 
@@ -417,9 +386,9 @@ void parseRawLZ(const char* filename) {
 		// Padding/Null (0x16, length = 0x2)
 		writeShort(converted, readShort(original));
 	}
-#pragma endregion Switch
+#pragma endregion Switches
 
-#pragma region Wormhole
+#pragma region Wormholes
 	fseek(original, wormholes.offset, SEEK_SET);
 	fseek(converted, wormholes.offset, SEEK_SET);
 
@@ -439,7 +408,7 @@ void parseRawLZ(const char* filename) {
 		// Offset to destination wormwhole (0x14, length = 0x4)
 		writeInt(converted, readInt(original));
 	}
-#pragma endregion Wormhole
+#pragma endregion Wormholes
 
 #pragma region Fog
 	fseek(original, fog.offset, SEEK_SET);
@@ -469,10 +438,10 @@ void parseRawLZ(const char* filename) {
 	fseek(converted, fogAnimation.offset, SEEK_SET);
 
 	// Animation (0x0, length = 0x40)
-	copyAnimation(original, converted, fogAnimation.offset, readInt, writeInt, 5);
+	copyAnimation(original, converted, fogAnimation.offset, 5);
 #pragma endregion Fog_Animation
 
-#pragma region Mystery_Three
+#pragma region Mystery_Threes
 	fseek(original, mysteryThree.offset, SEEK_SET);
 	fseek(converted, mysteryThree.offset, SEEK_SET);
 
@@ -492,18 +461,17 @@ void parseRawLZ(const char* filename) {
 		writeInt(converted, readInt(original));
 	}
 
-#pragma endregion Mystery_Three
+#pragma endregion Mystery_Threes
 
-#pragma region Level_Model_A
+#pragma region Level_Model_As
 	fseek(original, levelModelA.offset, SEEK_SET);
 	fseek(converted, levelModelA.offset, SEEK_SET);
 
-	// Level Model A Symbol (0x0, length = 0x8)
-	writeInt(converted, readInt(original)); // 0
-	writeInt(converted, readInt(original)); // 1
+	for (int i = 0; i < levelModelA.number; i++) {
+		// Level Model A Symbol (0x0, length = 0x8)
+		writeInt(converted, readInt(original)); // 0
+		writeInt(converted, readInt(original)); // 1
 
-	
-	{
 		// Offset to Level Model A (Actual) (0x0, length = 0x4)
 		uint32_t levelModelAOffset = readInt(original);
 		writeInt(converted, levelModelAOffset);
@@ -514,7 +482,7 @@ void parseRawLZ(const char* filename) {
 
 		// Null (0x0, length = 4)
 		writeInt(converted, readInt(original));
-		
+
 		// Model Name offset (0x4, length = 4)
 		uint32_t modelNameOffset = readInt(original);
 		writeInt(converted, modelNameOffset);
@@ -527,22 +495,24 @@ void parseRawLZ(const char* filename) {
 		copyAsciiAligned(original, converted, modelNameOffset);
 	}
 
-#pragma endregion Level_Model_A
+#pragma endregion Level_Model_As
 
-#pragma region Level_Model_B
+#pragma region Level_Model_Bs
 	fseek(original, levelModelB.offset, SEEK_SET);
 	fseek(converted, levelModelB.offset, SEEK_SET);
 
-	// Offset to Level Model A (0x0, length = 0x4)
-	writeInt(converted, readInt(original)); // Not saved because the Level Model A readion covers it
+	for (int i = 0; i < levelModelB.number; i++) {
+		// Offset to Level Model A (0x0, length = 0x4)
+		writeInt(converted, readInt(original)); // Not saved because the Level Model A readion covers it
+	}
 
-#pragma endregion Level_Model_B
+#pragma endregion Level_Model_Bs
 
-#pragma region Reflective_Level_Model
+#pragma region Reflective_Level_Models
 	fseek(original, reflectiveModels.offset, SEEK_SET);
 	fseek(converted, reflectiveModels.offset, SEEK_SET);
 
-	{
+	for (int i = 0; i < reflectiveModels.number; i++) {
 		// Model Name offset (0x0, length = 0x4)
 		uint32_t modelNameOffset = readInt(original);
 		writeInt(converted, modelNameOffset);
@@ -554,16 +524,16 @@ void parseRawLZ(const char* filename) {
 		// Copy model name
 		copyAsciiAligned(original, converted, modelNameOffset);
 	}
-#pragma endregion Reflective_Level_Model
+#pragma endregion Reflective_Level_Models
 
-#pragma region Background_Model
+#pragma region Background_Models
 	fseek(original, backgroundModels.offset, SEEK_SET);
 	fseek(converted, backgroundModels.offset, SEEK_SET);
 
-	// Background Model Symbol (0x0, length = 0x4)
-	writeInt(converted, readInt(original));
+	for (int i = 0; i < backgroundModels.number; i++) {
+		// Background Model Symbol (0x0, length = 0x4)
+		writeInt(converted, readInt(original));
 
-	{
 		// Model Name Offset (0x4, length = 0x4)
 		uint32_t modelNameOffset = readInt(original);
 		writeInt(converted, modelNameOffset);
@@ -603,22 +573,75 @@ void parseRawLZ(const char* filename) {
 		copyAsciiAligned(original, converted, modelNameOffset);
 
 		// Copy animation one
-		copyBackgroundAnimation(original, converted, backgroundAnimationOffsetOne, readInt, writeInt, 6); // TODO
+		copyBackgroundAnimation(original, converted, backgroundAnimationOffsetOne, 6); // TODO
 
 		// Copy animation two
-		copyBackgroundAnimation(original, converted, backgroundAnimationOffsetTwo, readInt, writeInt, 6); // TODO
+		copyBackgroundAnimation(original, converted, backgroundAnimationOffsetTwo, 6); // TODO
 
 		// Copy effects
-		copyEffects(original, converted, effectsOffset, readInt, writeInt);
+		copyEffects(original, converted, effectsOffset);
 	}
-#pragma endregion Background_Model
+#pragma endregion Background_Models
+
+#pragma region Collision_Fields
+	fseek(original, collisionFields.offset, SEEK_SET);
+	fseek(converted, collisionFields.offset, SEEK_SET);
+
+	for (int i = 0; i < collisionFields.number; i++) {
+		// Center of Rotation (0x0, length = 0xC)
+		writeInt(converted, readInt(original)); // X
+		writeInt(converted, readInt(original)); // Y
+		writeInt(converted, readInt(original)); // Z
+
+		// Initial Rotation (0xC, length = 0x6)
+		writeShort(converted, readShort(original)); // X
+		writeShort(converted, readShort(original)); // Y
+		writeShort(converted, readShort(original)); // Z
+
+		// Animatione loop type/seesaw (0x12, length = 0x2)
+		writeShort(converted, readShort(original));
+
+		// Animation Offset (0x14, length = 0x4)
+		uint32_t animationOffset = readInt(original);
+		writeInt(converted, animationOffset);
+
+		// Unknown/Null (0x18, length = 0xC)
+		for (int j = 0; j < 0xC; j += 4) {
+			writeInt(converted, readInt(original));
+		}
+
+		// Collision triangle information (0x24, length = 0x20)
+		uint32_t collisionTriangleListOffset = readInt(original);
+		writeInt(converted, collisionTriangleListOffset);
+
+		uint32_t collisionTriangleGridOffset = readInt(original);
+		writeInt(converted, collisionTriangleGridOffset);
+		// TODO
+		uint32_t gridStartXInt = readInt(original);
+		writeInt(converted, gridStartXInt);
+
+		uint32_t gridStartZInt = readInt(original);
+		writeInt(converted, gridStartXInt);
+
+		uint32_t gridEndXInt = readInt(original);
+		writeInt(converted, gridStartXInt);
+
+		uint32_t gridEndZInt = readInt(original);
+		writeInt(converted, gridStartXInt);
+
+		// Goals (0x44, length = 0x8)
+		writeInt(converted, readInt(original));
+		writeInt(converted, readInt(original));
+
+	}
+#pragma endregion Collision_Fields
 
 
 	fclose(original);
 	fclose(converted);
 }
 
-inline void copyAnimation(FILE *input, FILE *output, uint32_t offset, uint32_t(*readInt)(FILE*), void(*writeInt)(FILE*, uint32_t), int numKeys) {
+static void copyAnimation(FILE *input, FILE *output, uint32_t offset, int numKeys) {
 	uint32_t savePos = ftell(input);
 
 	// Sanity Check (or moreso a sanity warning...)
@@ -670,7 +693,7 @@ inline void copyAnimation(FILE *input, FILE *output, uint32_t offset, uint32_t(*
 	free(keyList);
 }
 
-inline void copyBackgroundAnimation(FILE *input, FILE *output, uint32_t offset, uint32_t(*readInt)(FILE*), void(*writeInt)(FILE*, uint32_t), int numKeys) {
+static void copyBackgroundAnimation(FILE *input, FILE *output, uint32_t offset, int numKeys) {
 	uint32_t savePos = ftell(input);
 	fseek(input, offset, SEEK_SET);
 	fseek(output, offset, SEEK_SET);
@@ -687,13 +710,13 @@ inline void copyBackgroundAnimation(FILE *input, FILE *output, uint32_t offset, 
 	}
 
 	// Animation (0x14, length = 0x40)
-	copyAnimation(input, output, ftell(input), readInt, writeInt, numKeys);
+	copyAnimation(input, output, ftell(input), numKeys);
 
 	fseek(input, savePos, SEEK_SET);
 	fseek(output, savePos, SEEK_SET);
 }
 
-inline void copyEffects(FILE *input, FILE *output, uint32_t offset, uint32_t(*readInt)(FILE*), void(*writeInt)(FILE*, uint32_t)) {
+static void copyEffects(FILE *input, FILE *output, uint32_t offset) {
 	uint32_t savePos = ftell(input);
 	fseek(input, offset, SEEK_SET);
 	fseek(output, offset, SEEK_SET);
@@ -702,4 +725,15 @@ inline void copyEffects(FILE *input, FILE *output, uint32_t offset, uint32_t(*re
 
 	fseek(input, savePos, SEEK_SET);
 	fseek(output, savePos, SEEK_SET);
+}
+
+static Item readItem(FILE *input, FILE *output) {
+	Item newItem;
+
+	newItem.number = readInt(input);
+	writeInt(output, newItem.number);
+	newItem.offset = readInt(input);
+	writeInt(output, newItem.offset);
+
+	return newItem;
 }
