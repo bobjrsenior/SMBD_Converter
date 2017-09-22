@@ -25,11 +25,19 @@ typedef struct {
 	int offset;
 }Item;
 
+
 static void copyAnimation(FILE *input, FILE *output, uint32_t offset, int numKeys);
 
 static void copyBackgroundAnimation(FILE *input, FILE *output, uint32_t offset, int numKeys);
 
 static void copyEffects(FILE *input, FILE *output, uint32_t offset);
+static void copyEffectOne(FILE *input, FILE *output, Item item);
+static void copyEffectTwo(FILE *input, FILE *output, Item item);
+static void copyTextureScroll(FILE *input, FILE *output, uint32_t offset);
+
+static uint32_t copyCollisionTriangleGrid(FILE *input, FILE *output, uint32_t offset, uint32_t xStepCount, uint32_t zStepCount);
+
+static void copyCollisionTriangles(FILE *input, FILE *output, uint32_t offset, uint32_t maxIndex);
 
 static Item readItem(FILE *input, FILE *output);
 
@@ -364,7 +372,145 @@ static void copyEffects(FILE *input, FILE *output, uint32_t offset) {
 	fseek(input, offset, SEEK_SET);
 	fseek(output, offset, SEEK_SET);
 
-	// TODO
+	// Effect 1 (0x0, length = 0x8)
+	Item effectOne = readItem(input, output);
+	
+	// Effect 2 (0x8, length = 0x8)
+	Item effectTwo = readItem(input, output);
+
+	// Texture Scroll (0x10, length = 0x4)
+	uint32_t textureScrollOffset = readInt(input);
+	writeInt(output, textureScrollOffset);
+
+	// Unknown/Null (0x14, length = 0x1C)
+	for (int i = 0; i < 0x1C; i += 4) {
+		writeInt(output, readInt(input));
+	}
+
+	// Copy Effects
+	copyEffectOne(input, output, effectOne);
+
+	copyEffectTwo(input, output, effectTwo);
+
+	copyTextureScroll(input, output, textureScrollOffset);
+
+	fseek(input, savePos, SEEK_SET);
+	fseek(output, savePos, SEEK_SET);
+}
+
+static void copyEffectOne(FILE *input, FILE *output, Item item) {
+	uint32_t savePos = ftell(input);
+	fseek(input, item.offset, SEEK_SET);
+	fseek(output, item.offset, SEEK_SET);
+
+	// Unknown (0x0, length = 0xC)
+	writeInt(output, readInt(input)); // X?
+	writeInt(output, readInt(input)); // Y?
+	writeInt(output, readInt(input)); // Z?
+
+	// Unknown (0xC, length = 0x8)
+	writeShort(output, readShort(input)); // X?
+	writeShort(output, readShort(input)); // Y?
+	writeShort(output, readShort(input)); // Z?
+	writeShort(output, readShort(input)); // Padding?
+	
+	fseek(input, savePos, SEEK_SET);
+	fseek(output, savePos, SEEK_SET);
+}
+static void copyEffectTwo(FILE *input, FILE *output, Item item) {
+	uint32_t savePos = ftell(input);
+	fseek(input, item.offset, SEEK_SET);
+	fseek(output, item.offset, SEEK_SET);
+
+	// Unknown (0x0, length = 0xC)
+	writeInt(output, readInt(input)); // X?
+	writeInt(output, readInt(input)); // Y?
+	writeInt(output, readInt(input)); // Z?
+
+	// Unknown/Null (0xC, length = 0x4)
+	// There is a discrepancy on the size of this (ie: is it 4 bytes or 1 byte then 3 bytes)
+	writeInt(output, readInt(input));
+
+	fseek(input, savePos, SEEK_SET);
+	fseek(output, savePos, SEEK_SET);
+}
+static void copyTextureScroll(FILE *input, FILE *output, uint32_t offset) {
+	uint32_t savePos = ftell(input);
+	fseek(input, offset, SEEK_SET);
+	fseek(output, offset, SEEK_SET);
+
+	// Speed (0x0, length = 0x8)
+	writeInt(output, readInt(input)); // X
+	writeInt(output, readInt(input)); // Y
+	
+	fseek(input, savePos, SEEK_SET);
+	fseek(output, savePos, SEEK_SET);
+}
+
+static uint32_t copyCollisionTriangleGrid(FILE *input, FILE *output, uint32_t offset, uint32_t xStepCount, uint32_t zStepCount) {
+	uint32_t savePos = ftell(input);
+	fseek(input, offset, SEEK_SET);
+	fseek(output, offset, SEEK_SET);
+
+	uint32_t maxIndex = 0;
+	int totalSteps = xStepCount * zStepCount;
+	for (int i = 0; i < totalSteps; i++) {
+		// Grid Pointer (0x0, length = 0x4)
+		uint32_t gridPointer = readInt(input);
+		writeInt(output, gridPointer);
+
+		// Copy the actual grid...
+		uint32_t savePos2 = ftell(input);
+		fseek(input, gridPointer, SEEK_SET);
+		fseek(output, gridPointer, SEEK_SET);
+
+		do {
+			uint32_t index = readInt(input);
+			writeInt(output, index);
+			if (index == 0xFFFF) break;
+			if (index > maxIndex) index = maxIndex;
+		} while (1);
+
+		fseek(input, savePos2, SEEK_SET);
+		fseek(output, savePos2, SEEK_SET);
+	}
+
+	fseek(input, savePos, SEEK_SET);
+	fseek(output, savePos, SEEK_SET);
+
+	return maxIndex;
+}
+
+static void copyCollisionTriangles(FILE *input, FILE *output, uint32_t offset, uint32_t maxIndex) {
+	uint32_t savePos = ftell(input);
+	fseek(input, offset, SEEK_SET);
+	fseek(output, offset, SEEK_SET);
+
+	for (uint32_t i = 0; i < maxIndex; i++) {
+		// Position 1 (0x0, length = 0xC)
+		writeInt(output, readInt(input)); // X
+		writeInt(output, readInt(input)); // Y
+		writeInt(output, readInt(input)); // Z
+
+		// Normal (0xC, length = 0xC)
+		writeInt(output, readInt(input)); // X
+		writeInt(output, readInt(input)); // Y
+		writeInt(output, readInt(input)); // Z
+
+		// Roation From XY Plane (0x18, length = 0x8)
+		writeShort(output, readShort(input)); // X
+		writeShort(output, readShort(input)); // Y
+		writeShort(output, readShort(input)); // Z
+		writeShort(output, readShort(input)); // Padding
+
+		// Tangent (0x20, length = 0x8)
+		writeInt(output, readInt(input)); // X
+		writeInt(output, readInt(input)); // Y
+
+		// Bitangent (0x28, length = 0x8)
+		writeInt(output, readInt(input)); // X
+		writeInt(output, readInt(input)); // Y
+	}
 
 	fseek(input, savePos, SEEK_SET);
 	fseek(output, savePos, SEEK_SET);
@@ -508,8 +654,6 @@ static void copyFalloutVolumes(FILE *original, FILE *converted, Item item) {
 		writeShort(converted, readShort(original)); // Y
 		writeShort(converted, readShort(original)); // Z
 		writeShort(converted, readShort(original)); // Padding/Null
-
-
 	}
 }
 static void copyBackgroundModels(FILE *original, FILE *converted, Item item) {
@@ -748,28 +892,135 @@ static void copyCollisionFields(FILE *original, FILE *converted, Item item) {
 			writeInt(converted, readInt(original));
 		}
 
-		// Collision triangle information (0x24, length = 0x20)
+		// Collision triangle information (0x24, length = 0x8)
 		uint32_t collisionTriangleListOffset = readInt(original);
 		writeInt(converted, collisionTriangleListOffset);
 
 		uint32_t collisionTriangleGridOffset = readInt(original);
 		writeInt(converted, collisionTriangleGridOffset);
-		// TODO
-		uint32_t gridStartXInt = readInt(original);
-		writeInt(converted, gridStartXInt);
 
-		uint32_t gridStartZInt = readInt(original);
-		writeInt(converted, gridStartXInt);
+		// Grid Paramters (0x2C, length = 0x10)
+		writeInt(converted, readInt(original)); // X Start
 
-		uint32_t gridEndXInt = readInt(original);
-		writeInt(converted, gridStartXInt);
+		writeInt(converted, readInt(original)); // Z Start
 
-		uint32_t gridEndZInt = readInt(original);
-		writeInt(converted, gridStartXInt);
+		writeInt(converted, readInt(original)); // X Step
+
+		writeInt(converted, readInt(original)); // Z Step
+		
+		// Grid Step Counts (0x3C, length = 0x8)
+		uint32_t xStepCount = readInt(original);
+		writeInt(converted, xStepCount);
+
+		uint32_t zStepCount = readInt(original);
+		writeInt(converted, zStepCount);
+
+		// Time for a duplicate of most of the file header
+		// Technically the lists can point to different places...
+		Item goals;
+		Item bumpers;
+		Item jamabars;
+		Item bananas;
+		Item falloutVolumes;
+		Item reflectiveModels;
+		Item levelModelB;
+		Item switches;
+		Item wormholes;
 
 		// Goals (0x44, length = 0x8)
-		writeInt(converted, readInt(original));
+		goals = readItem(original, converted);
+
+		// Bumpers (0x4C, length = 0x8)
+		bumpers = readItem(original, converted);
+
+		// Jamabars (0x54, length = 0x8)
+		jamabars = readItem(original, converted);
+
+		// Bananas (0x5C, length = 0x8)
+		bananas = readItem(original, converted);
+
+		// Unknown/Null (0x64, length = 0x18)
+		for (int j = 0; j < 0x18; j += 4) {
+			writeInt(converted, readInt(original));
+		}
+
+		// Fallout Volumes (0x7C, length = 0x8)
+		falloutVolumes = readItem(original, converted);
+		
+		// Reflective Models (0x84, length = 0x8)
+		reflectiveModels = readItem(original, converted);
+
+		// Unknown/Null (0x8C, length = 0x8)
+		for (int j = 0; j < 0x8; j += 4) {
+			writeInt(converted, readInt(original));
+		}
+
+		// Level Model Type Bs (0x94, length = 0x8)
+		levelModelB = readItem(original, converted);
+
+		// Unknown/Null (0x9C, length = 0x8)
+		for (int j = 0; j < 0x8; j += 4) {
+			writeInt(converted, readInt(original));
+		}
+
+		// Animation Group ID (0xA4, length = 0x4, marker?)
+		writeShort(converted, readShort(original));
+		writeShort(converted, readShort(original));
+
+		// Switches (0xA8, length = 0x8)
+		switches = readItem(original, converted);
+
+		// Unknown/Null (0xB0, length = 0x8)
+		for (int j = 0; j < 0x8; j += 4) {
+			writeInt(converted, readInt(original));
+		}
+
+		// Seesaw (0xB8, length = 0x8)
+		writeInt(converted, readInt(original)); // Sensitivity
+		writeInt(converted, readInt(original)); // Reset Stiffness
+		writeInt(converted, readInt(original)); // Bounds of Rotation
+
+		// Wormholes (0xC4, length = 0x8)
+		wormholes = readItem(original, converted);
+
+		// Initial Animation State (0xCC, length = 0x4)
 		writeInt(converted, readInt(original));
 
+		// Unknown/Null (0xD0, length = 0x4)
+		writeInt(converted, readInt(original));
+
+		// Animation Loop Point (0xD4, length = 0x4)
+		writeInt(converted, readInt(original));
+
+		// Unknown/Null (0xD8, length = 0x3C4)
+		for (int j = 0; j < 0x3C4; j += 4) {
+			writeInt(converted, readInt(original));
+		}
+
+		// Copy the fun items...
+		copyAnimation(original, converted, animationOffset, 6);
+
+		copyBumpers(original, converted, bumpers);
+
+		copyJamabars(original, converted, jamabars);
+
+		copyBananas(original, converted, bananas);
+
+		copyFalloutVolumes(original, converted, falloutVolumes);
+
+		copyReflectiveModels(original, converted, reflectiveModels);
+
+		copyLevelModelBs(original, converted, levelModelB);
+
+		copySwitches(original, converted, switches);
+
+		copyWormholes(original, converted, wormholes);
+
+		// Only convert exactly the grid specified
+		// and only up to the last used collision triangle index
+		// This avoids making assumptions about file order
+		// in order to approximate section size
+		uint32_t maxTriangleIndex = copyCollisionTriangleGrid(original, converted, collisionTriangleGridOffset, xStepCount, zStepCount);
+		copyCollisionTriangles(original, converted, collisionTriangleListOffset, maxTriangleIndex);
 	}
 }
