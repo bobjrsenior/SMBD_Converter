@@ -48,6 +48,7 @@ static void copyGoals(FILE *original, FILE *converted, Item item);
 static void copyBumpers(FILE *original, FILE *converted, Item item);
 static void copyJamabars(FILE *original, FILE *converted, Item item);
 static void copyBananas(FILE *original, FILE *converted, Item item);
+static void copyMysterySeven(FILE *original, FILE *converted, Item item);
 static void copyFalloutVolumes(FILE *original, FILE *converted, Item item);
 static void copyBackgroundModels(FILE *original, FILE *converted, Item item);
 static void copyReflectiveModels(FILE *original, FILE *converted, Item item);
@@ -135,6 +136,7 @@ void parseRawLZ(const char* filename) {
 	Item bumpers;
 	Item jamabars;
 	Item bananas;
+	Item mysterySeven;
 	Item falloutVolumes;
 	Item backgroundModels;
 	Item reflectiveModels;
@@ -179,10 +181,13 @@ void parseRawLZ(const char* filename) {
 	// Bananas (0x30, length = 0x8)
 	bananas = readItem(original, converted);
 
-	// Unknown/Null (0x38, length = 0x18)
-	for (int i = 0; i < 0x18; i += 4) {
+	// Unknown/Null (0x38, length = 0x10)
+	for (int i = 0; i < 0x10; i += 4) {
 		writeInt(converted, readInt(original));
 	}
+
+	// Mystery Seven (0x48, length = 0x8)
+	mysterySeven = readItem(original, converted);
 
 	// Fallout Volumes (0x50, length = 0x8)
 	falloutVolumes = readItem(original, converted);
@@ -268,18 +273,20 @@ void parseRawLZ(const char* filename) {
 
 	copyBananas(original, converted, bananas);
 
+	copyMysterySeven(original, converted, mysterySeven);
+
 	copyFalloutVolumes(original, converted, falloutVolumes);
 	
 	copySwitches(original, converted, switches);
 
 	copyWormholes(original, converted, wormholes);
-
+	
 	copyFog(original, converted, fog);
 	
 	copyFogAnimation(original, converted, fogAnimation);
 	
 	copyMysteryThrees(original, converted, mysteryThree);
-
+	
 	copyLevelModelAs(original, converted, levelModelA);
 	
 	copyLevelModelBs(original, converted, levelModelB);
@@ -298,11 +305,6 @@ static void copyAnimation(FILE *input, FILE *output, uint32_t offset, int numKey
 	if (offset == 0) return;
 	uint32_t savePos = ftell(input);
 
-	// Sanity Check (or moreso a sanity warning...)
-	if (numKeys > 8) {
-		printf("Warning: %d animation keys is more than the expected allowed number\n", numKeys);
-	}
-
 	fseek(input, offset, SEEK_SET);
 	fseek(output, offset, SEEK_SET);
 
@@ -312,6 +314,9 @@ static void copyAnimation(FILE *input, FILE *output, uint32_t offset, int numKey
 	for (int i = 0; i < numKeys; i++) {
 		keyList[i].number = readInt(input);
 		keyList[i].offset = readInt(input);
+		if (keyList[i].offset == 0x3D1C) {
+			//puts("Found it");
+		}
 		writeInt(output, keyList[i].number);
 		writeInt(output, keyList[i].offset);
 	}
@@ -362,12 +367,7 @@ static void copyBackgroundAnimation(FILE *input, FILE *output, uint32_t offset, 
 	// Animation Loop point (0x4, length = 0x4)
 	writeInt(output, readInt(input));
 
-	// Unknown/Null (0x8, length = 0x8)
-	for (int i = 0; i < 0x8; i += 4) {
-		writeInt(output, readInt(input));
-	}
-
-	// Animation (0x10, length = 0x40)
+	// Animation (0x8, length = 0x58)
 	copyAnimation(input, output, ftell(input), numKeys);
 
 	fseek(input, savePos, SEEK_SET);
@@ -552,6 +552,7 @@ static Item readItem(FILE *input, FILE *output) {
 }
 
 static void copyStartPositions(FILE *original, FILE *converted, Item item) {
+	if (item.offset == 0) return;
 	fseek(original, item.offset, SEEK_SET);
 	fseek(converted, item.offset, SEEK_SET);
 
@@ -578,6 +579,7 @@ static void copyFalloutY(FILE *original, FILE *converted, Item item) {
 	writeInt(converted, readInt(original));
 }
 static void copyGoals(FILE *original, FILE *converted, Item item) {
+	if (item.offset == 0) return;
 	fseek(original, item.offset, SEEK_SET);
 	fseek(converted, item.offset, SEEK_SET);
 
@@ -598,6 +600,7 @@ static void copyGoals(FILE *original, FILE *converted, Item item) {
 	}
 }
 static void copyBumpers(FILE *original, FILE *converted, Item item) {
+	if (item.offset == 0) return;
 	fseek(original, item.offset, SEEK_SET);
 	fseek(converted, item.offset, SEEK_SET);
 
@@ -621,6 +624,7 @@ static void copyBumpers(FILE *original, FILE *converted, Item item) {
 	}
 }
 static void copyJamabars(FILE *original, FILE *converted, Item item) {
+	if (item.offset == 0) return;
 	fseek(original, item.offset, SEEK_SET);
 	fseek(converted, item.offset, SEEK_SET);
 
@@ -644,6 +648,7 @@ static void copyJamabars(FILE *original, FILE *converted, Item item) {
 	}
 }
 static void copyBananas(FILE *original, FILE *converted, Item item) {
+	if (item.offset == 0) return;
 	fseek(original, item.offset, SEEK_SET);
 	fseek(converted, item.offset, SEEK_SET);
 
@@ -658,7 +663,33 @@ static void copyBananas(FILE *original, FILE *converted, Item item) {
 		writeInt(converted, readInt(original));
 	}
 }
+static void copyMysterySeven(FILE *original, FILE *converted, Item item) {
+	if (item.offset == 0) return;
+	fseek(original, item.offset, SEEK_SET);
+	fseek(converted, item.offset, SEEK_SET);
+	puts("Not yet implemented");
+	return;
+	// Loop through mystery sevens
+	for (int i = 0; i < item.number; i++) {
+		// 3 Floats (0x0, length = 0xC)
+		writeInt(converted, readInt(original)); // X?
+		writeInt(converted, readInt(original)); // Y?
+		writeInt(converted, readInt(original)); // Z
+
+		// 2 Ints? (0xC, length = 0x8)
+		writeInt(converted, readInt(original));
+		writeInt(converted, readInt(original));
+
+		// 4 Shorts (0x14, length = 0x8)
+		writeShort(converted, readShort(original)); // Padding?
+		writeShort(converted, readShort(original)); // Short?
+		writeShort(converted, readShort(original)); // Padding?
+		writeShort(converted, readShort(original)); // Short?
+	}
+	// Possible 4 bytes of padding at the end?
+}
 static void copyFalloutVolumes(FILE *original, FILE *converted, Item item) {
+	if (item.offset == 0) return;
 	fseek(original, item.offset, SEEK_SET);
 	fseek(converted, item.offset, SEEK_SET);
 	//if (item.number == 0 && item.offset != 0) {
@@ -684,6 +715,7 @@ static void copyFalloutVolumes(FILE *original, FILE *converted, Item item) {
 	}
 }
 static void copyBackgroundModels(FILE *original, FILE *converted, Item item) {
+	if (item.offset == 0) return;
 	fseek(original, item.offset, SEEK_SET);
 	fseek(converted, item.offset, SEEK_SET);
 
@@ -728,18 +760,19 @@ static void copyBackgroundModels(FILE *original, FILE *converted, Item item) {
 
 		// Copy model name
 		copyAsciiAligned(original, converted, modelNameOffset);
-
+		uint32_t offset = ftell(original);
 		// Copy animation one
 		copyBackgroundAnimation(original, converted, backgroundAnimationOffsetOne, 8);
 
 		 // Copy animation two
-		copyBackgroundAnimation(original, converted, backgroundAnimationOffsetTwo, 8);
+		copyBackgroundAnimation(original, converted, backgroundAnimationOffsetTwo, 11);
 
 		// Copy effects
 		copyEffects(original, converted, effectsOffset);
 	}
 }
 static void copyReflectiveModels(FILE *original, FILE *converted, Item item) {
+	if (item.offset == 0) return;
 	fseek(original, item.offset, SEEK_SET);
 	fseek(converted, item.offset, SEEK_SET);
 
@@ -759,6 +792,7 @@ static void copyReflectiveModels(FILE *original, FILE *converted, Item item) {
 	}
 }
 static void copyLevelModelAs(FILE *original, FILE *converted, Item item) {
+	if (item.offset == 0) return;
 	fseek(original, item.offset, SEEK_SET);
 	fseek(converted, item.offset, SEEK_SET);
 
@@ -797,6 +831,7 @@ static void copyLevelModelAs(FILE *original, FILE *converted, Item item) {
 	}
 }
 static void copyLevelModelBs(FILE *original, FILE *converted, Item item) {
+	if (item.offset == 0) return;
 	fseek(original, item.offset, SEEK_SET);
 	fseek(converted, item.offset, SEEK_SET);
 
@@ -806,6 +841,7 @@ static void copyLevelModelBs(FILE *original, FILE *converted, Item item) {
 	}
 }
 static void copySwitches(FILE *original, FILE *converted, Item item) {
+	if (item.offset == 0) return;
 	fseek(original, item.offset, SEEK_SET);
 	fseek(converted, item.offset, SEEK_SET);
 
@@ -881,23 +917,27 @@ static void copyFogAnimation(FILE *original, FILE *converted, Item item) {
 	fseek(converted, savePos, SEEK_SET);
 }
 static void copyWormholes(FILE *original, FILE *converted, Item item) {
+	if (item.offset == 0) return;
 	fseek(original, item.offset, SEEK_SET);
 	fseek(converted, item.offset, SEEK_SET);
 
 	// Loop through wormholes
 	for (int i = 0; i < item.number; i++) {
-		// Position (0x0, length = 0xC)
+		// Wormhole ID (1) (0x0, length = 0x4)
+		writeInt(converted, readInt(original));
+
+		// Position (0x4, length = 0xC)
 		writeInt(converted, readInt(original)); // X
 		writeInt(converted, readInt(original)); // Y
 		writeInt(converted, readInt(original)); // Z
 
-		// Rotation (0xC, length = 0x8)
+		// Rotation (0x10, length = 0x8)
 		writeShort(converted, readShort(original)); // X
 		writeShort(converted, readShort(original)); // Y
 		writeShort(converted, readShort(original)); // Z
 		writeShort(converted, readShort(original)); // Padding/Null
 
-		// Offset to destination wormwhole (0x14, length = 0x4)
+		// Offset to destination wormwhole (0x18, length = 0x4)
 		writeInt(converted, readInt(original));
 	}
 }
@@ -910,13 +950,13 @@ static void copyFog(FILE *original, FILE *converted, Item item) {
 	writeNormalInt(converted, readInt(original));
 
 	// Distance (0x4, length = 0x8)
-	writeNormalInt(converted, readInt(original)); // Start Distance
-	writeNormalInt(converted, readInt(original)); // End Distance
+	writeInt(converted, readInt(original)); // Start Distance
+	writeInt(converted, readInt(original)); // End Distance
 
 	// Color (0xC, length = 0xC)
-	writeNormalInt(converted, readInt(original)); // Red
-	writeNormalInt(converted, readInt(original)); // Green
-	writeNormalInt(converted, readInt(original)); // Blue
+	writeInt(converted, readInt(original)); // Red
+	writeInt(converted, readInt(original)); // Green
+	writeInt(converted, readInt(original)); // Blue
 
 	// Unknown/Null (0x18, length = 0xC)
 	for (int i = 0; i < 0xC; i += 4) {
@@ -958,6 +998,7 @@ static void copyMysteryFive(FILE *original, FILE *converted, Item item) {
 	writeInt(converted, readInt(original));
 }
 static void copyCollisionFields(FILE *original, FILE *converted, Item item) {
+	if (item.offset == 0) return;
 	fseek(original, item.offset, SEEK_SET);
 	fseek(converted, item.offset, SEEK_SET);
 
@@ -1070,28 +1111,25 @@ static void copyCollisionFields(FILE *original, FILE *converted, Item item) {
 		mysteryFive.offset = readInt(original);
 		writeInt(converted, mysteryFive.offset);
 
-		// Unnown/Null (0xB8, length = 0x4)
-		writeInt(converted, readInt(original));
-
-		// Seesaw (0xBC, length = 0x8)
+		// Seesaw (0xB8, length = 0xC)
 		writeInt(converted, readInt(original)); // Sensitivity
 		writeInt(converted, readInt(original)); // Reset Stiffness
 		writeInt(converted, readInt(original)); // Bounds of Rotation
-
-		// Wormholes (0xC8, length = 0x8)
+		
+		// Wormholes (0xC4, length = 0x8)
 		wormholes = readItem(original, converted);
 
-		// Initial Animation State (0xD0, length = 0x4)
+		// Initial Animation State (0xCC, length = 0x4)
 		writeInt(converted, readInt(original));
 
-		// Unknown/Null (0xD4, length = 0x4)
+		// Unknown/Null (0xD0, length = 0x4)
 		writeInt(converted, readInt(original));
 
-		// Animation Loop Point (0xD8, length = 0x4)
+		// Animation Loop Point (0xD4, length = 0x4)
 		writeInt(converted, readInt(original));
 
-		// Unknown/Null (0xDC, length = 0x3C0)
-		for (int j = 0; j < 0x3C0; j += 4) {
+		// Unknown/Null (0xD8, length = 0x3C4)
+		for (int j = 0; j < 0x3C4; j += 4) {
 			writeInt(converted, readInt(original));
 		}
 
@@ -1117,7 +1155,7 @@ static void copyCollisionFields(FILE *original, FILE *converted, Item item) {
 		copyMysteryFive(original, converted, mysteryFive);
 
 		copyWormholes(original, converted, wormholes);
-
+		
 		// Only convert exactly the grid specified
 		// and only up to the last used collision triangle index
 		// This avoids making assumptions about file order
