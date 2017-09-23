@@ -953,7 +953,7 @@ static void copyMysteryThrees(FILE *original, FILE *converted, Item item) {
 	// Padding/Null (0xC, length = 0x2)
 	writeShort(converted, readShort(original));
 
-	// Some Marker (0xE, length = 0x2);
+	// Some Symbol (0xE, length = 0x2);
 	writeShort(converted, readShort(original));
 
 	// Unknown/Null (0x10, length = 0x14)
