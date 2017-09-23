@@ -1,5 +1,5 @@
 #include "RawLZConverter.h"
-// TODO Read put Item readings into separate methods
+
 static void copyAsciiAligned(FILE *input, FILE *output, uint32_t offset) {
 	if (offset == 0) return;
 	uint32_t savePos = ftell(input);
@@ -58,6 +58,7 @@ static void copyFogAnimation(FILE *original, FILE *converted, Item item);
 static void copyWormholes(FILE *original, FILE *converted, Item item);
 static void copyFog(FILE *original, FILE *converted, Item item);
 static void copyMysteryThrees(FILE *original, FILE *converted, Item item);
+static void copyMysteryFive(FILE *original, FILE *converted, Item item);
 static void copyCollisionFields(FILE *original, FILE *converted, Item item);
 
 
@@ -274,9 +275,9 @@ void parseRawLZ(const char* filename) {
 	copyWormholes(original, converted, wormholes);
 
 	copyFog(original, converted, fog);
-
+	
 	copyFogAnimation(original, converted, fogAnimation);
-
+	
 	copyMysteryThrees(original, converted, mysteryThree);
 
 	copyLevelModelAs(original, converted, levelModelA);
@@ -286,7 +287,7 @@ void parseRawLZ(const char* filename) {
 	copyReflectiveModels(original, converted, reflectiveModels);
 
 	copyBackgroundModels(original, converted, backgroundModels);
-
+	
 	copyCollisionFields(original, converted, collisionFields);
 
 
@@ -359,7 +360,9 @@ static void copyBackgroundAnimation(FILE *input, FILE *output, uint32_t offset, 
 	uint32_t savePos = ftell(input);
 	fseek(input, offset, SEEK_SET);
 	fseek(output, offset, SEEK_SET);
-
+	if (offset == 0xB1C) {
+		puts("Good");
+	}
 	// Unknown/Null (0x0, length = 0x4)
 	writeInt(output, readInt(input));
 
@@ -456,6 +459,10 @@ static void copyEffectTwo(FILE *input, FILE *output, Item item) {
 }
 static void copyTextureScroll(FILE *input, FILE *output, uint32_t offset) {
 	if (offset == 0) return;
+	if (1) {
+		puts("Good");
+	}
+
 	uint32_t savePos = ftell(input);
 	fseek(input, offset, SEEK_SET);
 	fseek(output, offset, SEEK_SET);
@@ -687,7 +694,7 @@ static void copyBackgroundModels(FILE *original, FILE *converted, Item item) {
 
 	for (int i = 0; i < item.number; i++) {
 		if (ftell(converted) < 0x100) {
-			puts("Error\n");
+			//puts("Error\n");
 		}
 		// Background Model Symbol (0x0, length = 0x4)
 		writeInt(converted, readInt(original));
@@ -731,13 +738,13 @@ static void copyBackgroundModels(FILE *original, FILE *converted, Item item) {
 		copyAsciiAligned(original, converted, modelNameOffset);
 
 		// Copy animation one
-		copyBackgroundAnimation(original, converted, backgroundAnimationOffsetOne, 6); // TODO
+		copyBackgroundAnimation(original, converted, backgroundAnimationOffsetOne, 8);
 
 		 // Copy animation two
-		copyBackgroundAnimation(original, converted, backgroundAnimationOffsetTwo, 6); // TODO
+		copyBackgroundAnimation(original, converted, backgroundAnimationOffsetTwo, 8);
 
 		// Copy effects
-		//copyEffects(original, converted, effectsOffset);
+		copyEffects(original, converted, effectsOffset);
 	}
 }
 static void copyReflectiveModels(FILE *original, FILE *converted, Item item) {
@@ -834,11 +841,54 @@ static void copySwitches(FILE *original, FILE *converted, Item item) {
 }
 static void copyFogAnimation(FILE *original, FILE *converted, Item item) {
 	if (item.offset == 0) return;
+	const int numKeys = 6;
+	uint32_t savePos = ftell(original);
+
 	fseek(original, item.offset, SEEK_SET);
 	fseek(converted, item.offset, SEEK_SET);
+	Item keyList[6];
 
-	// Animation (0x0, length = 0x40)
-	copyAnimation(original, converted, item.offset, 5);
+	// Gather keys (0x0, length = 0x8 * numKeys
+	for (int i = 0; i < numKeys; i++) {
+		keyList[i].number = readInt(original);
+		keyList[i].offset = readInt(original);
+		writeInt(converted, keyList[i].number);
+		writeInt(converted, keyList[i].offset);
+	}
+
+	// Unknown/Null (0x8 * numKeys, length = 0x30 - (0x8 * numKeys)
+	for (int i = numKeys * 0x8; i < 0x30; i += 4) {
+		writeInt(converted, readInt(original));
+	}
+
+	for (int i = 0; i < numKeys; i++) {
+		if (keyList[i].number > 0 && keyList[i].offset != 0) {
+
+			fseek(original, keyList[i].offset, SEEK_SET);
+			fseek(converted, keyList[i].offset, SEEK_SET);
+			if (keyList[i].offset < 0x100) {
+				printf("Low Offset:\n Number: %d\nOffset: 0x%08X\n", keyList[i].offset, keyList[i].number);
+			}
+			for (int j = 0; j < keyList[i].number; j++) {
+				// Easing (0x0, length = 0x4)
+				writeInt(converted, readInt(original));
+
+				// Time (0x4, length = 0x4)
+				writeInt(converted, readInt(original));
+
+				// Value (0x8, length = 0x4)
+				writeInt(converted, readInt(original));
+
+				// Unknown/Null (0xC, length = 0x8)
+				for (int k = 0; k < 0x8; k += 4) {
+					writeInt(converted, readInt(original));
+				}
+			}
+		}
+	}
+
+	fseek(original, savePos, SEEK_SET);
+	fseek(converted, savePos, SEEK_SET);
 }
 static void copyWormholes(FILE *original, FILE *converted, Item item) {
 	fseek(original, item.offset, SEEK_SET);
@@ -866,17 +916,17 @@ static void copyFog(FILE *original, FILE *converted, Item item) {
 	fseek(original, item.offset, SEEK_SET);
 	fseek(converted, item.offset, SEEK_SET);
 
-	// Fog Id (0x0, length = 0x4)
-	writeInt(converted, readInt(original));
+	// Fog Id Marker (0x0, length = 0x4, marker)
+	writeNormalInt(converted, readInt(original));
 
 	// Distance (0x4, length = 0x8)
-	writeInt(converted, readInt(original)); // Start Distance
-	writeInt(converted, readInt(original)); // End Distance
+	writeNormalInt(converted, readInt(original)); // Start Distance
+	writeNormalInt(converted, readInt(original)); // End Distance
 
 	// Color (0xC, length = 0xC)
-	writeInt(converted, readInt(original)); // Red
-	writeInt(converted, readInt(original)); // Green
-	writeInt(converted, readInt(original)); // Blue
+	writeNormalInt(converted, readInt(original)); // Red
+	writeNormalInt(converted, readInt(original)); // Green
+	writeNormalInt(converted, readInt(original)); // Blue
 
 	// Unknown/Null (0x18, length = 0xC)
 	for (int i = 0; i < 0xC; i += 4) {
@@ -903,6 +953,19 @@ static void copyMysteryThrees(FILE *original, FILE *converted, Item item) {
 	for (int i = 0; i < 0x14; i += 4) {
 		writeInt(converted, readInt(original));
 	}
+}
+static void copyMysteryFive(FILE *original, FILE *converted, Item item) {
+	if (item.offset == 0) return;
+	fseek(original, item.offset, SEEK_SET);
+	fseek(converted, item.offset, SEEK_SET);
+
+	// Unknown/Null (0x0, length = 0x4)
+	writeInt(converted, readInt(original));
+
+	// Unknown/Floats (0x4, length = 0xC)
+	writeInt(converted, readInt(original));
+	writeInt(converted, readInt(original));
+	writeInt(converted, readInt(original));
 }
 static void copyCollisionFields(FILE *original, FILE *converted, Item item) {
 	fseek(original, item.offset, SEEK_SET);
@@ -965,6 +1028,7 @@ static void copyCollisionFields(FILE *original, FILE *converted, Item item) {
 		Item levelModelB;
 		Item switches;
 		Item wormholes;
+		Item mysteryFive;
 
 		// Goals (0x44, length = 0x8)
 		goals = readItem(original, converted);
@@ -1009,10 +1073,12 @@ static void copyCollisionFields(FILE *original, FILE *converted, Item item) {
 		// Switches (0xA8, length = 0x8)
 		switches = readItem(original, converted);
 
-		// Unknown/Null (0xB0, length = 0x8)
-		for (int j = 0; j < 0x8; j += 4) {
-			writeInt(converted, readInt(original));
-		}
+		// Unknown/Null (0xB0, length = 0x4)
+		writeInt(converted, readInt(original));
+
+		// Mystery Five (0xB4, length = 0x4)
+		mysteryFive.offset = readInt(original);
+		writeInt(converted, mysteryFive.offset);
 
 		// Seesaw (0xB8, length = 0x8)
 		writeInt(converted, readInt(original)); // Sensitivity
@@ -1052,6 +1118,8 @@ static void copyCollisionFields(FILE *original, FILE *converted, Item item) {
 		copyLevelModelBs(original, converted, levelModelB);
 
 		copySwitches(original, converted, switches);
+
+		copyMysteryFive(original, converted, mysteryFive);
 
 		copyWormholes(original, converted, wormholes);
 
