@@ -81,7 +81,7 @@ void parseRawLZ(const char* filename) {
 	FILE *original = fopen(filename, "rb");
 
 	if (original == NULL) {
-		printf("Error opening file\n");
+		printf("Error opening file: %s\n", filename);
 		return;
 	}
 
@@ -269,7 +269,7 @@ void parseRawLZ(const char* filename) {
 	copyBananas(original, converted, bananas);
 
 	copyFalloutVolumes(original, converted, falloutVolumes);
-
+	
 	copySwitches(original, converted, switches);
 
 	copyWormholes(original, converted, wormholes);
@@ -289,7 +289,6 @@ void parseRawLZ(const char* filename) {
 	copyBackgroundModels(original, converted, backgroundModels);
 	
 	copyCollisionFields(original, converted, collisionFields);
-
 
 	fclose(original);
 	fclose(converted);
@@ -662,7 +661,9 @@ static void copyBananas(FILE *original, FILE *converted, Item item) {
 static void copyFalloutVolumes(FILE *original, FILE *converted, Item item) {
 	fseek(original, item.offset, SEEK_SET);
 	fseek(converted, item.offset, SEEK_SET);
-
+	//if (item.number == 0 && item.offset != 0) {
+	//	item.number = 1; // TODO 8 bytes if offset, no no count?
+	//}
 	// Loop through falloutVolumes
 	for (int i = 0; i < item.number; i++) {
 		// Center Position (0x0, length = 0xC)
@@ -1021,10 +1022,10 @@ static void copyCollisionFields(FILE *original, FILE *converted, Item item) {
 
 		// Goals (0x44, length = 0x8)
 		goals = readItem(original, converted);
-
+		
 		// Bumpers (0x4C, length = 0x8)
 		bumpers = readItem(original, converted);
-
+		
 		// Jamabars (0x54, length = 0x8)
 		jamabars = readItem(original, converted);
 
@@ -1069,39 +1070,44 @@ static void copyCollisionFields(FILE *original, FILE *converted, Item item) {
 		mysteryFive.offset = readInt(original);
 		writeInt(converted, mysteryFive.offset);
 
-		// Seesaw (0xB8, length = 0x8)
+		// Unnown/Null (0xB8, length = 0x4)
+		writeInt(converted, readInt(original));
+
+		// Seesaw (0xBC, length = 0x8)
 		writeInt(converted, readInt(original)); // Sensitivity
 		writeInt(converted, readInt(original)); // Reset Stiffness
 		writeInt(converted, readInt(original)); // Bounds of Rotation
 
-		// Wormholes (0xC4, length = 0x8)
+		// Wormholes (0xC8, length = 0x8)
 		wormholes = readItem(original, converted);
 
-		// Initial Animation State (0xCC, length = 0x4)
+		// Initial Animation State (0xD0, length = 0x4)
 		writeInt(converted, readInt(original));
 
-		// Unknown/Null (0xD0, length = 0x4)
+		// Unknown/Null (0xD4, length = 0x4)
 		writeInt(converted, readInt(original));
 
-		// Animation Loop Point (0xD4, length = 0x4)
+		// Animation Loop Point (0xD8, length = 0x4)
 		writeInt(converted, readInt(original));
 
-		// Unknown/Null (0xD8, length = 0x3C4)
-		for (int j = 0; j < 0x3C4; j += 4) {
+		// Unknown/Null (0xDC, length = 0x3C0)
+		for (int j = 0; j < 0x3C0; j += 4) {
 			writeInt(converted, readInt(original));
 		}
 
+		uint32_t savePos = ftell(original);
+
 		// Copy the fun items...
 		copyAnimation(original, converted, animationOffset, 6);
-
+		
 		copyBumpers(original, converted, bumpers);
-
+		
 		copyJamabars(original, converted, jamabars);
 
 		copyBananas(original, converted, bananas);
 
 		copyFalloutVolumes(original, converted, falloutVolumes);
-
+		
 		copyReflectiveModels(original, converted, reflectiveModels);
 
 		copyLevelModelBs(original, converted, levelModelB);
@@ -1118,5 +1124,8 @@ static void copyCollisionFields(FILE *original, FILE *converted, Item item) {
 		// in order to approximate section size
 		uint32_t maxTriangleIndex = copyCollisionTriangleGrid(original, converted, collisionTriangleGridOffset, xStepCount, zStepCount);
 		copyCollisionTriangles(original, converted, collisionTriangleListOffset, maxTriangleIndex);
+		
+		fseek(original, savePos, SEEK_SET);
+		fseek(converted, savePos, SEEK_SET);
 	}
 }
