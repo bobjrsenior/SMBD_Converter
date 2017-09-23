@@ -497,7 +497,7 @@ static uint32_t copyCollisionTriangleGrid(FILE *input, FILE *output, uint32_t of
 				uint16_t index = readShort(input);
 				writeShort(output, index);
 				if (index == 0xFFFF) break;
-				if (index > maxIndex) index = maxIndex;
+				if (index > maxIndex) maxIndex = index;
 			} while (1);
 
 			fseek(input, savePos2, SEEK_SET);
@@ -516,8 +516,9 @@ static void copyCollisionTriangles(FILE *input, FILE *output, uint32_t offset, u
 	uint32_t savePos = ftell(input);
 	fseek(input, offset, SEEK_SET);
 	fseek(output, offset, SEEK_SET);
-
-	for (uint32_t i = 0; i < maxIndex; i++) {
+	// Collision Triangles are 0 indexed
+	// Because of that a max index of ie 10 must include 10 here
+	for (uint32_t i = 0; i <= maxIndex; i++) {
 		// Position 1 (0x0, length = 0xC)
 		writeInt(output, readInt(input)); // X
 		writeInt(output, readInt(input)); // Y
@@ -534,11 +535,17 @@ static void copyCollisionTriangles(FILE *input, FILE *output, uint32_t offset, u
 		writeShort(output, readShort(input)); // Z
 		writeShort(output, readShort(input)); // Padding
 
-		// Tangent (0x20, length = 0x8)
+		// Distance (0x20, length = 0x10)
+		writeInt(output, readInt(input)); // DX2X1
+		writeInt(output, readInt(input)); // DY2Y1
+		writeInt(output, readInt(input)); // DX3X1
+		writeInt(output, readInt(input)); // DY3Y1
+
+		// Tangent (0x30, length = 0x8)
 		writeInt(output, readInt(input)); // X
 		writeInt(output, readInt(input)); // Y
 
-		// Bitangent (0x28, length = 0x8)
+		// Bitangent (0x38, length = 0x8)
 		writeInt(output, readInt(input)); // X
 		writeInt(output, readInt(input)); // Y
 	}
@@ -947,7 +954,7 @@ static void copyMysteryThrees(FILE *original, FILE *converted, Item item) {
 	writeShort(converted, readShort(original));
 
 	// Some Marker (0xE, length = 0x2);
-	writeNormalShort(converted, readShort(original));
+	writeShort(converted, readShort(original));
 
 	// Unknown/Null (0x10, length = 0x14)
 	for (int i = 0; i < 0x14; i += 4) {
