@@ -306,9 +306,7 @@ static void copyAnimation(FILE *input, FILE *output, uint32_t offset, int numKey
 
 	fseek(input, offset, SEEK_SET);
 	fseek(output, offset, SEEK_SET);
-	if (ftell(input) < 0x100) {
-		puts("Error\n");
-	}
+
 	Item *keyList = (Item *)malloc(sizeof(Item) * numKeys);
 
 	// Gather keys (0x0, length = 0x8 * numKeys
@@ -329,9 +327,7 @@ static void copyAnimation(FILE *input, FILE *output, uint32_t offset, int numKey
 			
 			fseek(input, keyList[i].offset, SEEK_SET);
 			fseek(output, keyList[i].offset, SEEK_SET);
-			if (keyList[i].offset < 0x100) {
-				printf("Low Offset:\n Number: %d\nOffset: 0x%08X\n", keyList[i].offset, keyList[i].number);
-			}
+
 			for (int j = 0; j < keyList[i].number; j++) {
 				// Easing (0x0, length = 0x4)
 				writeInt(output, readInt(input));
@@ -360,9 +356,7 @@ static void copyBackgroundAnimation(FILE *input, FILE *output, uint32_t offset, 
 	uint32_t savePos = ftell(input);
 	fseek(input, offset, SEEK_SET);
 	fseek(output, offset, SEEK_SET);
-	if (offset == 0xB1C) {
-		puts("Good");
-	}
+
 	// Unknown/Null (0x0, length = 0x4)
 	writeInt(output, readInt(input));
 
@@ -373,14 +367,10 @@ static void copyBackgroundAnimation(FILE *input, FILE *output, uint32_t offset, 
 	for (int i = 0; i < 0x8; i += 4) {
 		writeInt(output, readInt(input));
 	}
-	if (ftell(input) < 0x100) {
-		puts("Error\n");
-	}
+
 	// Animation (0x10, length = 0x40)
 	copyAnimation(input, output, ftell(input), numKeys);
-	if (ftell(input) < 0x100) {
-		puts("Error\n");
-	}
+
 	fseek(input, savePos, SEEK_SET);
 	fseek(output, savePos, SEEK_SET);
 }
@@ -459,9 +449,6 @@ static void copyEffectTwo(FILE *input, FILE *output, Item item) {
 }
 static void copyTextureScroll(FILE *input, FILE *output, uint32_t offset) {
 	if (offset == 0) return;
-	if (1) {
-		puts("Good");
-	}
 
 	uint32_t savePos = ftell(input);
 	fseek(input, offset, SEEK_SET);
@@ -700,9 +687,6 @@ static void copyBackgroundModels(FILE *original, FILE *converted, Item item) {
 	fseek(converted, item.offset, SEEK_SET);
 
 	for (int i = 0; i < item.number; i++) {
-		if (ftell(converted) < 0x100) {
-			//puts("Error\n");
-		}
 		// Background Model Symbol (0x0, length = 0x4)
 		writeInt(converted, readInt(original));
 
@@ -873,9 +857,7 @@ static void copyFogAnimation(FILE *original, FILE *converted, Item item) {
 
 			fseek(original, keyList[i].offset, SEEK_SET);
 			fseek(converted, keyList[i].offset, SEEK_SET);
-			if (keyList[i].offset < 0x100) {
-				printf("Low Offset:\n Number: %d\nOffset: 0x%08X\n", keyList[i].offset, keyList[i].number);
-			}
+
 			for (int j = 0; j < keyList[i].number; j++) {
 				// Easing (0x0, length = 0x4)
 				writeInt(converted, readInt(original));

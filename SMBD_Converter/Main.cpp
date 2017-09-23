@@ -55,7 +55,7 @@ int main(int argc, char*argv[]) {
 	else if (fileType == "gma") {
 		parseGMA(argv[1]);
 	}
-	else if (fileType == "raw") {
+	else if (fileType == "raw" || fileType == "mb2" || fileType == "mbd") {
 		parseRawLZ(argv[1]);
 	}
 	else if (fileType == ".lz") {
