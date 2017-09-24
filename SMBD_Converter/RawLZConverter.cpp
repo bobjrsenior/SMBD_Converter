@@ -49,6 +49,7 @@ static void copyBumpers(FILE *original, FILE *converted, Item item);
 static void copyJamabars(FILE *original, FILE *converted, Item item);
 static void copyBananas(FILE *original, FILE *converted, Item item);
 static void copyMysterySeven(FILE *original, FILE *converted, Item item);
+static void copyMysteryNines(FILE *original, FILE *converted, Item item);
 static void copyFalloutVolumes(FILE *original, FILE *converted, Item item);
 static void copyBackgroundModels(FILE *original, FILE *converted, Item item);
 static void copyMysteryEights(FILE *original, FILE *converted, Item item);
@@ -138,6 +139,7 @@ void parseRawLZ(const char* filename) {
 	Item jamabars;
 	Item bananas;
 	Item mysterySeven;
+	Item mysteryNine;
 	Item falloutVolumes;
 	Item backgroundModels;
 	Item mysteryEight;
@@ -183,10 +185,13 @@ void parseRawLZ(const char* filename) {
 	// Bananas (0x30, length = 0x8)
 	bananas = readItem(original, converted);
 
-	// Unknown/Null (0x38, length = 0x10)
-	for (int i = 0; i < 0x10; i += 4) {
+	// Unknown/Null (0x38, length = 0x8)
+	for (int i = 0; i < 0x08; i += 4) {
 		writeInt(converted, readInt(original));
 	}
+
+	// Mystery Nine (0x40, length = 0x8)
+	mysteryNine = readItem(original, converted);
 
 	// Mystery Seven (0x48, length = 0x8)
 	mysterySeven = readItem(original, converted);
@@ -220,18 +225,13 @@ void parseRawLZ(const char* filename) {
 	// Level Model B (0x94, length = 0x8)
 	levelModelB = readItem(original, converted);
 
-	// Unknown/Null (0x9C, length = 0x8)
-	for (int i = 0; i < 0x8; i += 4) {
+	// Unknown/Null (0x9C, length = 0xC)
+	for (int i = 0; i < 0xC; i += 4) {
 		writeInt(converted, readInt(original));
 	}
-
-	// Switches (0xA4, length = 0x8)
+	
+	// Switches (0xA8, length = 0x8)
 	switches = readItem(original, converted);
-
-	// Unknown/Null (0xAC, length = 0x4)
-	for (int i = 0; i < 0x4; i += 4) {
-		writeInt(converted, readInt(original));
-	}
 
 	// Fog Animation (0xB0, length = 0x4)
 	fogAnimation.offset = readInt(original);
@@ -277,6 +277,8 @@ void parseRawLZ(const char* filename) {
 	copyBananas(original, converted, bananas);
 
 	copyMysterySeven(original, converted, mysterySeven);
+
+	copyMysteryNines(original, converted, mysteryNine);
 
 	copyFalloutVolumes(original, converted, falloutVolumes);
 	
@@ -690,6 +692,23 @@ static void copyMysterySeven(FILE *original, FILE *converted, Item item) {
 		writeShort(converted, readShort(original)); // Short?
 		writeShort(converted, readShort(original)); // Padding?
 		writeShort(converted, readShort(original)); // Short?
+	}
+	// Possible 4 bytes of padding at the end?
+}
+static void copyMysteryNines(FILE *original, FILE *converted, Item item) {
+	if (item.offset == 0) return;
+	fseek(original, item.offset, SEEK_SET);
+	fseek(converted, item.offset, SEEK_SET);
+
+	// Loop through mystery eights
+	for (int i = 0; i < item.number; i++) {
+		// Three Floats? (0x0, length = 0xC)
+		writeInt(converted, readInt(original));
+		writeInt(converted, readInt(original));
+		writeInt(converted, readInt(original));
+
+		// Unknown/Null (0xC, length = 0x4)
+		writeInt(converted, readInt(original));
 	}
 	// Possible 4 bytes of padding at the end?
 }
