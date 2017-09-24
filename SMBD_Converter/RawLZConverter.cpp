@@ -51,6 +51,7 @@ static void copyBananas(FILE *original, FILE *converted, Item item);
 static void copyMysterySeven(FILE *original, FILE *converted, Item item);
 static void copyFalloutVolumes(FILE *original, FILE *converted, Item item);
 static void copyBackgroundModels(FILE *original, FILE *converted, Item item);
+static void copyMysteryEights(FILE *original, FILE *converted, Item item);
 static void copyReflectiveModels(FILE *original, FILE *converted, Item item);
 static void copyLevelModelAs(FILE *original, FILE *converted, Item item);
 static void copyLevelModelBs(FILE *original, FILE *converted, Item item);
@@ -139,6 +140,7 @@ void parseRawLZ(const char* filename) {
 	Item mysterySeven;
 	Item falloutVolumes;
 	Item backgroundModels;
+	Item mysteryEight;
 	Item reflectiveModels;
 	Item levelModelA;
 	Item levelModelB;
@@ -195,10 +197,11 @@ void parseRawLZ(const char* filename) {
 	// Background Models (0x58, length = 0x8)
 	backgroundModels = readItem(original, converted);
 
-	// Unknown/Null (0x60, length = 0xC)
-	for (int i = 0; i < 0xC; i += 4) {
-		writeInt(converted, readInt(original));
-	}
+	// Mystery Eight (0x60, length = 0x8)
+	mysteryEight = readItem(original, converted);
+
+	// Unknown/Null (0x68, length = 0x4)
+	writeInt(converted, readInt(original));
 
 	// One (0x6C, length = 0x4)
 	writeInt(converted, readInt(original));
@@ -294,6 +297,8 @@ void parseRawLZ(const char* filename) {
 	copyReflectiveModels(original, converted, reflectiveModels);
 
 	copyBackgroundModels(original, converted, backgroundModels);
+
+	copyMysteryEights(original, converted, mysteryEight);
 	
 	copyCollisionFields(original, converted, collisionFields);
 
@@ -421,7 +426,7 @@ static void copyEffectOne(FILE *input, FILE *output, Item item) {
 		writeShort(output, readShort(input)); // X?
 		writeShort(output, readShort(input)); // Y?
 		writeShort(output, readShort(input)); // Z?
-		writeShort(output, readShort(input)); // Padding?
+		writeNormalShort(output, readShort(input)); // Marker?
 	}
 	
 	fseek(input, savePos, SEEK_SET);
@@ -771,6 +776,37 @@ static void copyBackgroundModels(FILE *original, FILE *converted, Item item) {
 		copyEffects(original, converted, effectsOffset);
 	}
 }
+static void copyMysteryEights(FILE *original, FILE *converted, Item item) {
+	if (item.offset == 0) return;
+	fseek(original, item.offset, SEEK_SET);
+	fseek(converted, item.offset, SEEK_SET);
+
+	for (int i = 0; i < item.number; i++) {
+		// Marker (0x1F) (0x0, length = 0x4)
+		writeInt(converted, readInt(original));
+
+		// Model Name Offset (0x4, length = 0x4)
+		uint32_t modelNameOffset = readInt(original);
+		writeInt(converted, modelNameOffset);
+
+		// Unknown/Null (0x8, length = 0x18)
+		for (int j = 0; j < 0x18; j += 4) {
+			writeInt(converted, readInt(original));
+		}
+
+		// Three Floats (0x20, length = 0xC)
+		writeInt(converted, readInt(original));
+		writeInt(converted, readInt(original));
+		writeInt(converted, readInt(original));
+
+		// Unknown/Null (0x2C, length = 0x10)
+		writeInt(converted, readInt(original));
+		writeInt(converted, readInt(original));
+		writeInt(converted, readInt(original));
+
+		copyAsciiAligned(original, converted, modelNameOffset);
+	}
+}
 static void copyReflectiveModels(FILE *original, FILE *converted, Item item) {
 	if (item.offset == 0) return;
 	fseek(original, item.offset, SEEK_SET);
@@ -924,7 +960,13 @@ static void copyWormholes(FILE *original, FILE *converted, Item item) {
 	// Loop through wormholes
 	for (int i = 0; i < item.number; i++) {
 		// Wormhole ID (1) (0x0, length = 0x4)
-		writeInt(converted, readInt(original));
+		// Every second wormhole has this as a marker (no endianness change)
+		if (i % 2 == 0) {
+			writeInt(converted, readInt(original));
+		}
+		else {
+			writeNormalInt(converted, readInt(original));
+		}
 
 		// Position (0x4, length = 0xC)
 		writeInt(converted, readInt(original)); // X
@@ -973,11 +1015,8 @@ static void copyMysteryThrees(FILE *original, FILE *converted, Item item) {
 	writeInt(converted, readInt(original));
 	writeInt(converted, readInt(original));
 
-	// Padding/Null (0xC, length = 0x2)
-	writeShort(converted, readShort(original));
-
-	// Some Symbol (0xE, length = 0x2);
-	writeShort(converted, readShort(original));
+	// Some Symbol (0xC, length = 0x4)
+	writeInt(converted, readInt(original));
 
 	// Unknown/Null (0x10, length = 0x14)
 	for (int i = 0; i < 0x14; i += 4) {
