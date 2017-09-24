@@ -1067,8 +1067,10 @@ static void copyLevelModelAs(FILE *original, FILE *converted, Item item) {
 		uint32_t modelNameOffset = readInt(original);
 		writeInt(converted, modelNameOffset);
 
-		// Null/Padding (0x8, length = 8)
+		// Null/Padding (0x8, length = 4)
 		writeInt(converted, readInt(original));
+
+		// Float (Sometimes 0x41F00000) (0xC, length = 0x4)
 		writeInt(converted, readInt(original));
 
 		if (modelNameOffset != 0) {
