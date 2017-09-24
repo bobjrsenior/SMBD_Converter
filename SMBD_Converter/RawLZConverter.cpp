@@ -48,12 +48,13 @@ static void copyGoals(FILE *original, FILE *converted, Item item);
 static void copyBumpers(FILE *original, FILE *converted, Item item);
 static void copyJamabars(FILE *original, FILE *converted, Item item);
 static void copyBananas(FILE *original, FILE *converted, Item item);
-static void copyMysterySeven(FILE *original, FILE *converted, Item item);
-static void copyMysteryNines(FILE *original, FILE *converted, Item item);
+static void copyCylinderCollisions(FILE *original, FILE *converted, Item item);
+static void copySphereCollisions(FILE *original, FILE *converted, Item item);
 static void copyFalloutVolumes(FILE *original, FILE *converted, Item item);
 static void copyBackgroundModels(FILE *original, FILE *converted, Item item);
 static void copyMysteryEights(FILE *original, FILE *converted, Item item);
 static void copyReflectiveModels(FILE *original, FILE *converted, Item item);
+static void copyModelDuplicates(FILE *original, FILE *converted, Item item);
 static void copyLevelModelAs(FILE *original, FILE *converted, Item item);
 static void copyLevelModelBs(FILE *original, FILE *converted, Item item);
 static void copySwitches(FILE *original, FILE *converted, Item item);
@@ -62,6 +63,7 @@ static void copyWormholes(FILE *original, FILE *converted, Item item);
 static void copyFog(FILE *original, FILE *converted, Item item);
 static void copyMysteryThrees(FILE *original, FILE *converted, Item item);
 static void copyMysteryFive(FILE *original, FILE *converted, Item item);
+static void copyMysteryElevens(FILE *original, FILE *converted, Item item);
 static void copyCollisionFields(FILE *original, FILE *converted, Item item);
 
 
@@ -138,12 +140,13 @@ void parseRawLZ(const char* filename) {
 	Item bumpers;
 	Item jamabars;
 	Item bananas;
-	Item mysterySeven;
-	Item mysteryNine;
+	Item cylinderCollisions;
+	Item sphereCollisions;
 	Item falloutVolumes;
 	Item backgroundModels;
 	Item mysteryEight;
 	Item reflectiveModels;
+	Item modelDuplicates;
 	Item levelModelA;
 	Item levelModelB;
 	Item switches;
@@ -190,11 +193,11 @@ void parseRawLZ(const char* filename) {
 		writeInt(converted, readInt(original));
 	}
 
-	// Mystery Nine (0x40, length = 0x8)
-	mysteryNine = readItem(original, converted);
+	// Sphere Collisions (0x40, length = 0x8)
+	sphereCollisions = readItem(original, converted);
 
-	// Mystery Seven (0x48, length = 0x8)
-	mysterySeven = readItem(original, converted);
+	// Cylinder Collisions (0x48, length = 0x8)
+	cylinderCollisions = readItem(original, converted);
 
 	// Fallout Volumes (0x50, length = 0x8)
 	falloutVolumes = readItem(original, converted);
@@ -214,10 +217,13 @@ void parseRawLZ(const char* filename) {
 	// Reflective Models (0x70, length = 0x8)
 	reflectiveModels = readItem(original, converted);
 
-	// Unknown/Null (0x78, length = 0x14)
-	for (int i = 0; i < 0x14; i += 4) {
+	// Unknown/Null (0x78, length = 0xC)
+	for (int i = 0; i < 0xC; i += 4) {
 		writeInt(converted, readInt(original));
 	}
+	
+	// Model Duplicates (0x84, length = 0x8)
+	modelDuplicates = readItem(original, converted);
 
 	// Level Model A (0x8C, length = 0x8)
 	levelModelA = readItem(original, converted);
@@ -276,9 +282,9 @@ void parseRawLZ(const char* filename) {
 
 	copyBananas(original, converted, bananas);
 
-	copyMysterySeven(original, converted, mysterySeven);
+	copyCylinderCollisions(original, converted, cylinderCollisions);
 
-	copyMysteryNines(original, converted, mysteryNine);
+	copySphereCollisions(original, converted, sphereCollisions);
 
 	copyFalloutVolumes(original, converted, falloutVolumes);
 	
@@ -297,6 +303,8 @@ void parseRawLZ(const char* filename) {
 	copyLevelModelBs(original, converted, levelModelB);
 
 	copyReflectiveModels(original, converted, reflectiveModels);
+
+	copyModelDuplicates(original, converted, modelDuplicates);
 
 	copyBackgroundModels(original, converted, backgroundModels);
 
@@ -329,8 +337,22 @@ static void copyAnimation(FILE *input, FILE *output, uint32_t offset, int numKey
 	}
 
 	// Unknown/Null (0x8 * numKeys, length = 0x40 - (0x8 * numKeys)
-	for (int i = numKeys * 0x8; i < 0x40; i += 4) {
+	if (numKeys == 6) {
+		// Three Floats? (0x30, length = 0xC)
 		writeInt(output, readInt(input));
+		writeInt(output, readInt(input));
+		writeInt(output, readInt(input));
+
+		// Unknown/Null (0x3C, length = 0x2)
+		writeShort(output, readShort(input));
+
+		// Some Short (0x3E, length = 0x2)
+		writeShort(output, readShort(input));
+	}
+	else {
+		for (int i = numKeys * 0x8; i < 0x40; i += 4) {
+			writeInt(output, readInt(input));
+		}
 	}
 	
 	for (int i = 0; i < numKeys; i++) {
@@ -670,37 +692,37 @@ static void copyBananas(FILE *original, FILE *converted, Item item) {
 		writeInt(converted, readInt(original));
 	}
 }
-static void copyMysterySeven(FILE *original, FILE *converted, Item item) {
+static void copyCylinderCollisions(FILE *original, FILE *converted, Item item) {
 	if (item.offset == 0) return;
 	fseek(original, item.offset, SEEK_SET);
 	fseek(converted, item.offset, SEEK_SET);
-	puts("Not yet implemented");
-	return;
+
 	// Loop through mystery sevens
 	for (int i = 0; i < item.number; i++) {
-		// 3 Floats (0x0, length = 0xC)
-		writeInt(converted, readInt(original)); // X?
-		writeInt(converted, readInt(original)); // Y?
+		// Center Position (0x0, length = 0xC)
+		writeInt(converted, readInt(original)); // X
+		writeInt(converted, readInt(original)); // Y
 		writeInt(converted, readInt(original)); // Z
 
-		// 2 Ints? (0xC, length = 0x8)
-		writeInt(converted, readInt(original));
+		// Radius (0xC, length = 0x4)
 		writeInt(converted, readInt(original));
 
-		// 4 Shorts (0x14, length = 0x8)
-		writeShort(converted, readShort(original)); // Padding?
-		writeShort(converted, readShort(original)); // Short?
-		writeShort(converted, readShort(original)); // Padding?
-		writeShort(converted, readShort(original)); // Short?
+		// Height (0x10, length = 0x4)
+		writeInt(converted, readInt(original));
+
+		// Rotation (0x14, length = 0x8)
+		writeShort(converted, readShort(original)); // X
+		writeShort(converted, readShort(original)); // Y
+		writeShort(converted, readShort(original)); // Z
+		writeShort(converted, readShort(original)); // Padding
 	}
-	// Possible 4 bytes of padding at the end?
 }
-static void copyMysteryNines(FILE *original, FILE *converted, Item item) {
+static void copySphereCollisions(FILE *original, FILE *converted, Item item) {
 	if (item.offset == 0) return;
 	fseek(original, item.offset, SEEK_SET);
 	fseek(converted, item.offset, SEEK_SET);
 
-	// Loop through mystery eights
+	// Loop through mystery nines
 	for (int i = 0; i < item.number; i++) {
 		// Three Floats? (0x0, length = 0xC)
 		writeInt(converted, readInt(original));
@@ -784,7 +806,7 @@ static void copyBackgroundModels(FILE *original, FILE *converted, Item item) {
 
 		// Copy model name
 		copyAsciiAligned(original, converted, modelNameOffset);
-		uint32_t offset = ftell(original);
+		
 		// Copy animation one
 		copyBackgroundAnimation(original, converted, backgroundAnimationOffsetOne, 8);
 
@@ -844,6 +866,32 @@ static void copyReflectiveModels(FILE *original, FILE *converted, Item item) {
 			// Copy model name
 			copyAsciiAligned(original, converted, modelNameOffset);
 		}
+	}
+}
+static void copyModelDuplicates(FILE *original, FILE *converted, Item item) {
+	if (item.offset == 0) return;
+	fseek(original, item.offset, SEEK_SET);
+	fseek(converted, item.offset, SEEK_SET);
+	
+	for (int i = 0; i < item.number; i++) {
+		// Offset to level model A (0x0, length = 0x4)
+		writeInt(converted, readInt(original));
+
+		// Position? (0x4, length = 0xC)
+		writeInt(converted, readInt(original)); // X?
+		writeInt(converted, readInt(original)); // Y?
+		writeInt(converted, readInt(original)); // Z?
+
+		// Rotation?? (0x10, length = 0x8)
+		writeShort(converted, readShort(original)); // Unknown X?
+		writeShort(converted, readShort(original)); // Has Value Y
+		writeShort(converted, readShort(original)); // Unknown Z?
+		writeShort(converted, readShort(original)); // Unknown Padding?
+
+		// Scale? (0x18, length = 0xC)
+		writeInt(converted, readInt(original));
+		writeInt(converted, readInt(original));
+		writeInt(converted, readInt(original));
 	}
 }
 static void copyLevelModelAs(FILE *original, FILE *converted, Item item) {
@@ -1011,13 +1059,13 @@ static void copyFog(FILE *original, FILE *converted, Item item) {
 	writeNormalInt(converted, readInt(original));
 
 	// Distance (0x4, length = 0x8)
-	writeInt(converted, readInt(original)); // Start Distance
-	writeInt(converted, readInt(original)); // End Distance
+	writeNormalInt(converted, readInt(original)); // Start Distance
+	writeNormalInt(converted, readInt(original)); // End Distance
 
 	// Color (0xC, length = 0xC)
-	writeInt(converted, readInt(original)); // Red
-	writeInt(converted, readInt(original)); // Green
-	writeInt(converted, readInt(original)); // Blue
+	writeNormalInt(converted, readInt(original)); // Red
+	writeNormalInt(converted, readInt(original)); // Green
+	writeNormalInt(converted, readInt(original)); // Blue
 
 	// Unknown/Null (0x18, length = 0xC)
 	for (int i = 0; i < 0xC; i += 4) {
@@ -1053,6 +1101,17 @@ static void copyMysteryFive(FILE *original, FILE *converted, Item item) {
 	// Unknown/Floats (0x4, length = 0xC)
 	writeInt(converted, readInt(original));
 	writeInt(converted, readInt(original));
+	writeInt(converted, readInt(original));
+}
+static void copyMysteryElevens(FILE *original, FILE *converted, Item item) {
+	if (item.offset == 0) return;
+	fseek(original, item.offset, SEEK_SET);
+	fseek(converted, item.offset, SEEK_SET);
+
+	// Float? (0x0, length = 0x4)
+	writeInt(converted, readInt(original));
+
+	// Unknown/Null (0x4, length = 0x4)
 	writeInt(converted, readInt(original));
 }
 static void copyCollisionFields(FILE *original, FILE *converted, Item item) {
@@ -1112,12 +1171,16 @@ static void copyCollisionFields(FILE *original, FILE *converted, Item item) {
 		Item bumpers;
 		Item jamabars;
 		Item bananas;
+		Item sphereCollisions;
+		Item cylinderCollisions;
 		Item falloutVolumes;
 		Item reflectiveModels;
+		Item modelDuplicates;
 		Item levelModelB;
 		Item switches;
 		Item wormholes;
 		Item mysteryFive;
+		Item mysteryEleven;
 
 		// Goals (0x44, length = 0x8)
 		goals = readItem(original, converted);
@@ -1131,10 +1194,16 @@ static void copyCollisionFields(FILE *original, FILE *converted, Item item) {
 		// Bananas (0x5C, length = 0x8)
 		bananas = readItem(original, converted);
 
-		// Unknown/Null (0x64, length = 0x18)
-		for (int j = 0; j < 0x18; j += 4) {
+		// Unknown/Null (0x64, length = 0x8)
+		for (int j = 0; j < 0x8; j += 4) {
 			writeInt(converted, readInt(original));
 		}
+
+		// Sphere Collisions (0x6C, length = 0x8)
+		sphereCollisions = readItem(original, converted);
+
+		// Cylinder Collisions (0x74, length = 0x8)
+		cylinderCollisions = readItem(original, converted);
 
 		// Fallout Volumes (0x7C, length = 0x8)
 		falloutVolumes = readItem(original, converted);
@@ -1142,10 +1211,8 @@ static void copyCollisionFields(FILE *original, FILE *converted, Item item) {
 		// Reflective Models (0x84, length = 0x8)
 		reflectiveModels = readItem(original, converted);
 
-		// Unknown/Null (0x8C, length = 0x8)
-		for (int j = 0; j < 0x8; j += 4) {
-			writeInt(converted, readInt(original));
-		}
+		// Model Duplicates (0x8C, length = 0x8)
+		modelDuplicates = readItem(original, converted);
 
 		// Level Model Type Bs (0x94, length = 0x8)
 		levelModelB = readItem(original, converted);
@@ -1186,8 +1253,12 @@ static void copyCollisionFields(FILE *original, FILE *converted, Item item) {
 		// Animation Loop Point (0xD4, length = 0x4)
 		writeInt(converted, readInt(original));
 
-		// Unknown/Null (0xD8, length = 0x3C4)
-		for (int j = 0; j < 0x3C4; j += 4) {
+		// Mystery Eleven (0xD8, length = 0x4)
+		mysteryEleven.offset = readInt(original);
+		writeInt(converted, mysteryEleven.offset);
+
+		// Unknown/Null (0xDC, length = 0x3C0)
+		for (int j = 0; j < 0x3C0; j += 4) {
 			writeInt(converted, readInt(original));
 		}
 
@@ -1202,9 +1273,15 @@ static void copyCollisionFields(FILE *original, FILE *converted, Item item) {
 
 		copyBananas(original, converted, bananas);
 
+		copySphereCollisions(original, converted, sphereCollisions);
+
+		copyCylinderCollisions(original, converted, cylinderCollisions);
+
 		copyFalloutVolumes(original, converted, falloutVolumes);
 		
 		copyReflectiveModels(original, converted, reflectiveModels);
+
+		copyModelDuplicates(original, converted, modelDuplicates);
 
 		copyLevelModelBs(original, converted, levelModelB);
 
@@ -1213,6 +1290,8 @@ static void copyCollisionFields(FILE *original, FILE *converted, Item item) {
 		copyMysteryFive(original, converted, mysteryFive);
 
 		copyWormholes(original, converted, wormholes);
+
+		copyMysteryElevens(original, converted, mysteryEleven);
 		
 		// Only convert exactly the grid specified
 		// and only up to the last used collision triangle index
