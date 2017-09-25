@@ -55,6 +55,8 @@ static void copyFalloutVolumes(FILE *original, FILE *converted, Item item);
 static void copyBackgroundModels(FILE *original, FILE *converted, Item item);
 static void copyMysteryEights(FILE *original, FILE *converted, Item item);
 static void copyMysteryTwelves(FILE *original, FILE *converted, Item item);
+static void copyMysteryFourteens(FILE *original, FILE *converted, Item item);
+static void copyMysteryFifteens(FILE *original, FILE *converted, Item item);
 static void copyReflectiveModels(FILE *original, FILE *converted, Item item);
 static void copyModelDuplicates(FILE *original, FILE *converted, Item item);
 static void copyLevelModelAs(FILE *original, FILE *converted, Item item);
@@ -149,6 +151,8 @@ void parseRawLZ(const char* filename) {
 	Item backgroundModels;
 	Item mysteryEight;
 	Item mysteryTwelve;
+	Item mysteryFourteen;
+	Item mysteryFifteen;
 	Item reflectiveModels;
 	Item modelDuplicates;
 	Item levelModelA;
@@ -220,8 +224,12 @@ void parseRawLZ(const char* filename) {
 	// Reflective Models (0x70, length = 0x8)
 	reflectiveModels = readItem(original, converted);
 
-	// Unknown/Null (0x78, length = 0xC)
-	for (int i = 0; i < 0xC; i += 4) {
+	// Mystery Fourteen (0x78, length = 0x4)
+	mysteryFourteen.offset = readInt(original);
+	writeInt(converted, mysteryFourteen.offset);
+
+	// Unknown/Null (0x7C, length = 0x8)
+	for (int i = 0; i < 0x8; i += 4) {
 		writeInt(converted, readInt(original));
 	}
 	
@@ -234,8 +242,11 @@ void parseRawLZ(const char* filename) {
 	// Level Model B (0x94, length = 0x8)
 	levelModelB = readItem(original, converted);
 
-	// Unknown/Null (0x9C, length = 0xC)
-	for (int i = 0; i < 0xC; i += 4) {
+	// Mystery Fifteen (0x9C, length = 0x8)
+	mysteryFifteen = readItem(original, converted);
+
+	// Unknown/Null (0xA4, length = 0x4)
+	for (int i = 0; i < 0x4; i += 4) {
 		writeInt(converted, readInt(original));
 	}
 	
@@ -316,6 +327,10 @@ void parseRawLZ(const char* filename) {
 	copyMysteryEights(original, converted, mysteryEight);
 
 	copyMysteryTwelves(original, converted, mysteryTwelve);
+
+	copyMysteryFourteens(original, converted, mysteryFourteen);
+
+	copyMysteryFifteens(original, converted, mysteryFifteen);
 	
 	copyCollisionFields(original, converted, collisionFields);
 
@@ -769,8 +784,11 @@ static void copySphereCollisions(FILE *original, FILE *converted, Item item) {
 		// Radius (0xC, length = 0x4)
 		writeInt(converted, readInt(original));
 
-		// Unknown/Null (0x10, length = 0x4)
-		writeInt(converted, readInt(original));
+		// Short (0x10, length = 0x2)
+		writeShort(converted, readShort(original));
+
+		// Padding? (0x12, length = 0x2)
+		writeShort(converted, readShort(original));
 	}
 }
 static void copyFalloutVolumes(FILE *original, FILE *converted, Item item) {
@@ -869,20 +887,30 @@ static void copyMysteryEights(FILE *original, FILE *converted, Item item) {
 		uint32_t modelNameOffset = readInt(original);
 		writeInt(converted, modelNameOffset);
 
-		// Unknown/Null (0x8, length = 0x18)
-		for (int j = 0; j < 0x18; j += 4) {
-			writeInt(converted, readInt(original));
-		}
-
-		// Three Floats (0x20, length = 0xC)
-		writeInt(converted, readInt(original));
-		writeInt(converted, readInt(original));
+		// Unknown/Null (0x8, length = 0x4)
 		writeInt(converted, readInt(original));
 
-		// Unknown/Null (0x2C, length = 0x10)
+		// Position? (0xC, length = 0xC)
+		writeInt(converted, readInt(original)); // X?
+		writeInt(converted, readInt(original)); // Y?
+		writeInt(converted, readInt(original)); // Z?
+
+		// Rotation? (0x18, length = 0x8)
+		writeShort(converted, readShort(original)); // X, generally null?
+		writeShort(converted, readShort(original)); // Y?
+		writeShort(converted, readShort(original)); // Z, generally null?
+		writeShort(converted, readShort(original)); // Padding, generally null?
+
+		// Three floats (Generally the same value and small (ie .5)) (0x20, length = 0xC)
 		writeInt(converted, readInt(original));
 		writeInt(converted, readInt(original));
 		writeInt(converted, readInt(original));
+
+		// Unknown/Null (0x2C, length = 0xC)
+		writeInt(converted, readInt(original));
+		writeInt(converted, readInt(original));
+		writeInt(converted, readInt(original));
+
 
 		copyAsciiAligned(original, converted, modelNameOffset);
 	}
@@ -912,9 +940,9 @@ static void copyMysteryTwelves(FILE *original, FILE *converted, Item item) {
 		writeInt(converted, readInt(original));
 
 		// Four Floats (0x4, length = 10)
-		writeInt(converted, readInt(original));
-		writeInt(converted, readInt(original));
-		writeInt(converted, readInt(original));
+		writeInt(converted, readInt(original)); // X Rotation?
+		writeInt(converted, readInt(original)); // Y Rotation
+		writeInt(converted, readInt(original)); // Z Rotation?
 		writeInt(converted, readInt(original));
 	}
 
@@ -926,7 +954,7 @@ static void copyMysteryTwelves(FILE *original, FILE *converted, Item item) {
 		writeInt(converted, readInt(original));
 
 		// Float (0x4, length = 0x4)
-		writeInt(converted, readInt(original));
+		writeInt(converted, readInt(original)); // Incrementing Index (float for some reason, but use a whole number float)
 
 		// Unknown/Null (0x8, length = 0xC)
 		writeInt(converted, readInt(original));
@@ -941,9 +969,13 @@ static void copyMysteryTwelves(FILE *original, FILE *converted, Item item) {
 		// One (0x0, length = 0x4)
 		writeInt(converted, readInt(original));
 
-		// Four Floats (0x4, length = 10)
+		// Incrementing Index (float value) (0x4, length = 4)
+		writeInt(converted, readInt(original)); // Incrementing Index (float for some reason, but use a whole number float)
+
+		// Unknown Float? (0x8, length = 0x4)
 		writeInt(converted, readInt(original));
-		writeInt(converted, readInt(original));
+
+		// Both of these floats are equal? (0xC, length = 0x8)
 		writeInt(converted, readInt(original));
 		writeInt(converted, readInt(original));
 	}
@@ -993,6 +1025,53 @@ static void copyMysteryTwelves(FILE *original, FILE *converted, Item item) {
 		}
 		fseek(original, savePos, SEEK_SET);
 		fseek(converted, savePos, SEEK_SET);
+	}
+}
+static void copyMysteryFourteens(FILE *original, FILE *converted, Item item) {
+	if (item.offset == 0) return;
+	fseek(original, item.offset, SEEK_SET);
+	fseek(converted, item.offset, SEEK_SET);
+	
+	// Three floats? (0x0, length = 0xC)
+	writeInt(converted, readInt(original));
+	writeInt(converted, readInt(original));
+	writeInt(converted, readInt(original));
+
+	// Two Floats (use lower 2 bytes only?)? (0xC, length = 0x8)
+	writeInt(converted, readInt(original));
+	writeInt(converted, readInt(original));
+
+	// Unknown/Null (0x14, length = 0x40)
+	for (int i = 0; i < 0x40; i++) {
+		writeInt(converted, readInt(original));
+	}
+}
+
+static void copyMysteryFifteens(FILE *original, FILE *converted, Item item) {
+	if (item.offset == 0) return;
+	fseek(original, item.offset, SEEK_SET);
+	fseek(converted, item.offset, SEEK_SET);
+	return; // Not done yet
+	for (int i = 0; i < item.number; i++) {
+		// Model Name offset (0x0, length = 0x4)
+		uint32_t modelNameOffset = readInt(original);
+		writeInt(converted, modelNameOffset);
+
+		// Unknown/Null (0x4, length = 0x4)
+		writeInt(converted, readInt(original));
+
+		// Four floats? (0x8, length = 0x10)
+		writeInt(converted, readInt(original));
+		writeInt(converted, readInt(original));
+		writeInt(converted, readInt(original));
+		writeInt(converted, readInt(original));
+
+		// Unknown/Null (0x18, length = 0x10)
+		for (int j = 0; j < 0x10; j++) {
+			writeInt(converted, readInt(original));
+		}
+
+		// Sets
 	}
 }
 static void copyReflectiveModels(FILE *original, FILE *converted, Item item) {
