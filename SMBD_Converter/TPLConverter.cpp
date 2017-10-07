@@ -1,4 +1,10 @@
 #include "TPLConverter.h"
+#ifdef _MSC_VER
+#define _CRT_SECURE_NO_WARNINGS
+#endif
+
+#include "FunctionsAndDefines.h"
+#include <string>
 
 #define CMPR 14
 #define I8 1

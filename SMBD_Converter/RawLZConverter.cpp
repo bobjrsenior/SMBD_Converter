@@ -1,4 +1,13 @@
+#pragma once
+#ifdef _MSC_VER
+#define _CRT_SECURE_NO_WARNINGS
+#endif
+
 #include "RawLZConverter.h"
+
+#include "FunctionsAndDefines.h"
+#include <string>
+
 
 static void copyAsciiAligned(FILE *input, FILE *output, uint32_t offset) {
 	if (offset == 0) return;
@@ -1051,7 +1060,7 @@ static void copyMysteryFifteens(FILE *original, FILE *converted, Item item) {
 	if (item.offset == 0) return;
 	fseek(original, item.offset, SEEK_SET);
 	fseek(converted, item.offset, SEEK_SET);
-	return; // Not done yet
+	return; // TODO Not done yet
 	for (int i = 0; i < item.number; i++) {
 		// Model Name offset (0x0, length = 0x4)
 		uint32_t modelNameOffset = readInt(original);
